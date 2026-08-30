@@ -24,10 +24,10 @@ internal sealed class PlayerController
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
     }
 
-    public void Update(float dt, InputState input)
+    public void Update(float dt, InputState input, Vector2 mouseDelta)
     {
         ArgumentNullException.ThrowIfNull(input);
-        UpdateLook(input.MouseDelta);
+        UpdateLook(mouseDelta);
         UpdateMovement(dt, input);
         UpdateInteraction(input);
     }
