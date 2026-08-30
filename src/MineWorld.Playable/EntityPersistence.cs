@@ -5,7 +5,7 @@ namespace MineWorld.Playable;
 
 public sealed record SavedEntity(string Id, EntityKind Kind, double X, double Y, double Z);
 
-public sealed record LoadedWorldState(VoxelWorld World, IReadOnlyList<SavedEntity> Entities);
+internal sealed record LoadedWorldState(VoxelWorld World, IReadOnlyList<SavedEntity> Entities);
 
 internal static class EntityPersistence
 {
