@@ -21,7 +21,7 @@ public sealed class P0IntegrationTests
         Assert.Equal(1, inventory.Count("core:grass"));
 
         Assert.True(inventory.TryAdd(new ItemStack("core:dirt", 1)));
-        var placementRay = new Ray(new Vector3(0.5f, y + 0.5f, 0.5f), Vector3.UnitX);
+        var placementRay = new Ray(new Vector3(0.5f, y + 2f, 0.5f), -Vector3.UnitY);
         Assert.True(world.Place(placementRay, inventory));
         Assert.Equal(VoxelWorld.Dirt, world.GetBlock(0, y, 0));
         Assert.Equal(0, inventory.Count("core:dirt"));
