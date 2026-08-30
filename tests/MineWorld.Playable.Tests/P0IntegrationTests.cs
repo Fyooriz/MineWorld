@@ -13,17 +13,33 @@ public sealed class P0IntegrationTests
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
         var inventory = new Inventory(capacity: 4);
         var y = world.GetSurfaceHeight(0, 0);
-        var ray = new Ray(new Vector3(0.5f, y + 2f, 0.5f), -Vector3.UnitY);
-        var original = world.GetBlock(0, y, 0);
+        var miningRay = new Ray(new Vector3(0.5f, y + 2f, 0.5f), -Vector3.UnitY);
 
-        Assert.NotEqual(VoxelWorld.Air, original);
-        Assert.True(world.Mine(ray, inventory));
+        Assert.Equal(VoxelWorld.Grass, world.GetBlock(0, y, 0));
+        Assert.True(world.Mine(miningRay, inventory));
         Assert.Equal(VoxelWorld.Air, world.GetBlock(0, y, 0));
         Assert.Equal(1, inventory.Count("core:grass"));
 
-        Assert.True(world.Place(ray, inventory));
+        var placementRay = new Ray(new Vector3(0.5f, y + 0.5f, 0.5f), Vector3.UnitX);
+        Assert.True(world.Place(placementRay, inventory));
+        Assert.Equal(VoxelWorld.Dirt, world.GetBlock(0, y, 0));
+        Assert.Equal(0, inventory.Count("core:dirt"));
+    }
+
+    [Fact]
+    public void MiningWithFullInventoryLeavesWorldUnchanged()
+    {
+        var world = new VoxelWorld(seed: 12345, renderDistance: 1);
+        var inventory = new Inventory(capacity: 1, maxStackSize: 1);
+        Assert.True(inventory.TryAdd(new ItemStack("core:stone", 1)));
+
+        var y = world.GetSurfaceHeight(0, 0);
+        var ray = new Ray(new Vector3(0.5f, y + 2f, 0.5f), -Vector3.UnitY);
+        var original = world.GetBlock(0, y, 0);
+
+        Assert.False(world.Mine(ray, inventory));
         Assert.Equal(original, world.GetBlock(0, y, 0));
-        Assert.Equal(0, inventory.Count("core:grass"));
+        Assert.Equal(1, inventory.Count("core:stone"));
     }
 
     [Fact]
