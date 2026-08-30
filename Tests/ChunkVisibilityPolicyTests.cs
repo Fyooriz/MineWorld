@@ -47,4 +47,26 @@ public sealed class ChunkVisibilityPolicyTests
             16,
             90f));
     }
+
+    [Fact]
+    public void FrustumAcceptsChunkInsideView()
+    {
+        var policy = new ChunkVisibilityPolicy(32);
+        var view = Matrix4x4.CreateLookAt(new Vector3(0, 16, 32), Vector3.Zero, Vector3.UnitY);
+        var projection = Matrix4x4.CreateOrthographic(64, 64, 0.1f, 128f);
+        var frustum = Frustum3D.FromViewProjection(view * projection);
+
+        Assert.True(policy.IsVisible(new ChunkKey(0, 0), frustum, 16, 64));
+    }
+
+    [Fact]
+    public void FrustumRejectsChunkOutsideView()
+    {
+        var policy = new ChunkVisibilityPolicy(128);
+        var view = Matrix4x4.CreateLookAt(new Vector3(0, 16, 32), Vector3.Zero, Vector3.UnitY);
+        var projection = Matrix4x4.CreateOrthographic(64, 64, 0.1f, 128f);
+        var frustum = Frustum3D.FromViewProjection(view * projection);
+
+        Assert.False(policy.IsVisible(new ChunkKey(100, 0), frustum, 16, 64));
+    }
 }
