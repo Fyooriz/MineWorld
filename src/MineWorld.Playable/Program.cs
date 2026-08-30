@@ -12,6 +12,7 @@ internal static class Program
 
         using IRenderer renderer = new RaylibRenderer(1280, 720, "MineWorld P0");
         var loop = new GameLoop(renderer, input, world, player, SavePath);
-        loop.Run();
+        var bootTest = string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_BOOT"), "1", StringComparison.Ordinal);
+        loop.Run(bootTest ? 120 : null);
     }
 }
