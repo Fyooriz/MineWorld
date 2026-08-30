@@ -13,4 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/MineWorld.Core/MineWorld.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
 </Project>
