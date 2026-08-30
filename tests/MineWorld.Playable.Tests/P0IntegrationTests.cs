@@ -8,7 +8,7 @@ namespace MineWorld.Playable.Tests;
 public sealed class P0IntegrationTests
 {
     [Fact]
-    public void MinePlaceRoundTripPreservesWorldInventoryInvariant()
+    public void MineThenPlaceDirtPreservesWorldInventoryInvariant()
     {
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
         var inventory = new Inventory(capacity: 4);
@@ -20,6 +20,7 @@ public sealed class P0IntegrationTests
         Assert.Equal(VoxelWorld.Air, world.GetBlock(0, y, 0));
         Assert.Equal(1, inventory.Count("core:grass"));
 
+        Assert.True(inventory.TryAdd(new ItemStack("core:dirt", 1)));
         var placementRay = new Ray(new Vector3(0.5f, y + 0.5f, 0.5f), Vector3.UnitX);
         Assert.True(world.Place(placementRay, inventory));
         Assert.Equal(VoxelWorld.Dirt, world.GetBlock(0, y, 0));
