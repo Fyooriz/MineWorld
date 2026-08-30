@@ -1,4 +1,5 @@
 using System.Numerics;
+using MineWorld.Core.Entities;
 using MineWorld.Core.Inventory;
 using MineWorld.Playable;
 using Raylib_cs;
@@ -63,6 +64,37 @@ public sealed class P0IntegrationTests
         finally
         {
             if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void EntityLifecycleTicksThroughCoreContract()
+    {
+        var entity = new TestEntity(
+            new EntityId("test:entity"),
+            EntityKind.Passive,
+            new EntityPosition(1, 2, 3));
+
+        entity.Tick(new EntityTickContext(Tick: 42, DeltaSeconds: 1.0 / 60.0));
+
+        Assert.Equal(1, entity.TickCount);
+        Assert.Equal(42, entity.LastTick);
+        Assert.Equal(1.0 / 60.0, entity.LastDeltaSeconds, precision: 12);
+        Assert.Equal(new EntityPosition(1, 2, 3), entity.Position);
+    }
+
+    private sealed class TestEntity(EntityId id, EntityKind kind, EntityPosition position)
+        : EntityBase(id, kind, position)
+    {
+        public int TickCount { get; private set; }
+        public long LastTick { get; private set; }
+        public double LastDeltaSeconds { get; private set; }
+
+        public override void Tick(EntityTickContext context)
+        {
+            TickCount++;
+            LastTick = context.Tick;
+            LastDeltaSeconds = context.DeltaSeconds;
         }
     }
 }
