@@ -28,12 +28,13 @@ internal readonly struct Frustum
         var farCenter = position + forward * far;
         var farV = MathF.Tan(fov * 0.5f) * far;
         var farH = farV * aspect;
+        var insidePoint = position + forward * ((near + far) * 0.5f);
 
         return new Frustum(
-            Plane.CreateFromPoints(position, nearCenter + correctedUp * halfV, nearCenter - right * halfH),
-            Plane.CreateFromPoints(position, nearCenter - correctedUp * halfV, nearCenter + right * halfH),
-            Plane.CreateFromPoints(position, nearCenter - right * halfH, nearCenter - correctedUp * halfV),
-            Plane.CreateFromPoints(position, nearCenter + correctedUp * halfV, nearCenter + right * halfH),
+            CreatePlane(position, nearCenter + correctedUp * halfV, nearCenter - right * halfH, insidePoint),
+            CreatePlane(position, nearCenter - correctedUp * halfV, nearCenter + right * halfH, insidePoint),
+            CreatePlane(position, nearCenter - right * halfH, nearCenter - correctedUp * halfV, insidePoint),
+            CreatePlane(position, nearCenter + correctedUp * halfV, nearCenter + right * halfH, insidePoint),
             new Plane(forward, -Vector3.Dot(forward, nearCenter)),
             new Plane(-forward, Vector3.Dot(forward, farCenter)));
     }
@@ -41,6 +42,15 @@ internal readonly struct Frustum
     public bool Intersects(BoundingBox box)
         => Inside(_left, box) && Inside(_right, box) && Inside(_bottom, box)
         && Inside(_top, box) && Inside(_near, box) && Inside(_far, box);
+
+    private static Plane CreatePlane(Vector3 a, Vector3 b, Vector3 c, Vector3 insidePoint)
+    {
+        var normal = Vector3.Normalize(Vector3.Cross(b - a, c - a));
+        var plane = new Plane(normal, -Vector3.Dot(normal, a));
+        return Vector3.Dot(plane.Normal, insidePoint) + plane.D >= 0f
+            ? plane
+            : new Plane(-plane.Normal, -plane.D);
+    }
 
     private static bool Inside(Plane plane, BoundingBox box)
     {
