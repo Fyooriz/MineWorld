@@ -1,0 +1,24 @@
+# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Godot / generated engine files (reserved for future client integration)
+.godot/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build output
+artifacts/
+coverage/
+TestResults/
+
+# Local saves
+.local/
+saves/
