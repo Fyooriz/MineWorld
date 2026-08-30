@@ -96,49 +96,27 @@ internal sealed class VoxelWorld
     private bool EditRay(Ray ray, bool place, Inventory inventory)
     {
         ArgumentNullException.ThrowIfNull(inventory);
-        var previousAir = (
-            X: (int)MathF.Floor(ray.Position.X),
-            Y: (int)MathF.Floor(ray.Position.Y),
-            Z: (int)MathF.Floor(ray.Position.Z));
-
+        var previousAir = (X: (int)MathF.Floor(ray.Position.X), Y: (int)MathF.Floor(ray.Position.Y), Z: (int)MathF.Floor(ray.Position.Z));
         for (var distance = 0.15f; distance < 8f; distance += 0.04f)
         {
             var point = ray.Position + ray.Direction * distance;
             var x = (int)MathF.Floor(point.X); var y = (int)MathF.Floor(point.Y); var z = (int)MathF.Floor(point.Z);
             var block = GetBlock(x, y, z);
-            if (block == Air)
-            {
-                previousAir = (x, y, z);
-                continue;
-            }
-
+            if (block == Air) { previousAir = (x, y, z); continue; }
             if (place)
             {
                 var (px, py, pz) = previousAir;
-                if (py >= 0 && py < WorldHeight && GetBlock(px, py, pz) == Air && inventory.TryRemove("core:dirt", 1))
-                {
-                    SetBlock(px, py, pz, Dirt);
-                    return true;
-                }
+                if (py >= 0 && py < WorldHeight && GetBlock(px, py, pz) == Air && inventory.TryRemove("core:dirt", 1)) { SetBlock(px, py, pz, Dirt); return true; }
                 return false;
             }
-
-            var itemId = ItemIdForBlock(block);
-            SetBlock(x, y, z, Air);
+            var itemId = ItemIdForBlock(block); SetBlock(x, y, z, Air);
             if (inventory.TryAdd(new ItemStack(itemId, 1))) return true;
-            SetBlock(x, y, z, block);
-            return false;
+            SetBlock(x, y, z, block); return false;
         }
         return false;
     }
 
-    private static string ItemIdForBlock(byte block) => block switch
-    {
-        Grass => "core:grass",
-        Dirt => "core:dirt",
-        Stone => "core:stone",
-        _ => "core:unknown"
-    };
+    private static string ItemIdForBlock(byte block) => block switch { Grass => "core:grass", Dirt => "core:dirt", Stone => "core:stone", _ => "core:unknown" };
 
     private VoxelChunk EnsureChunk(int chunkX, int chunkZ)
     {
