@@ -24,16 +24,16 @@ internal sealed class PlayerController
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
     }
 
-    public void Update(float dt)
+    public void Update(float dt, InputState input)
     {
-        UpdateLook();
-        UpdateMovement(dt);
-        UpdateInteraction();
+        ArgumentNullException.ThrowIfNull(input);
+        UpdateLook(input.MouseDelta);
+        UpdateMovement(dt, input);
+        UpdateInteraction(input);
     }
 
-    private void UpdateLook()
+    private void UpdateLook(Vector2 mouse)
     {
-        var mouse = Raylib.GetMouseDelta();
         _yaw -= mouse.X * 0.0025f;
         _pitch = Math.Clamp(_pitch - mouse.Y * 0.0025f, -1.5f, 1.5f);
 
@@ -43,16 +43,17 @@ internal sealed class PlayerController
             MathF.Cos(_pitch) * MathF.Cos(_yaw)));
     }
 
-    private void UpdateMovement(float dt)
+    private void UpdateMovement(float dt, InputState input)
     {
-        var forward = Vector3.Normalize(new Vector3(LookDirection.X, 0, LookDirection.Z));
+        var flatLook = new Vector3(LookDirection.X, 0, LookDirection.Z);
+        var forward = flatLook.LengthSquared() > 0.0001f ? Vector3.Normalize(flatLook) : Vector3.UnitZ;
         var right = new Vector3(forward.Z, 0, -forward.X);
         var move = Vector3.Zero;
 
-        if (Raylib.IsKeyDown(KeyboardKey.W)) move += forward;
-        if (Raylib.IsKeyDown(KeyboardKey.S)) move -= forward;
-        if (Raylib.IsKeyDown(KeyboardKey.D)) move += right;
-        if (Raylib.IsKeyDown(KeyboardKey.A)) move -= right;
+        if (input.Forward) move += forward;
+        if (input.Backward) move -= forward;
+        if (input.Right) move += right;
+        if (input.Left) move -= right;
 
         if (move.LengthSquared() > 0)
             move = Vector3.Normalize(move) * Speed * dt;
@@ -62,7 +63,7 @@ internal sealed class PlayerController
         var ground = _world.GetSurfaceHeight(blockX, blockZ) + EyeHeight;
         var grounded = Position.Y <= ground + 0.02f;
 
-        if (grounded && Raylib.IsKeyPressed(KeyboardKey.Space))
+        if (grounded && input.JumpPressed)
             _verticalVelocity = JumpVelocity;
 
         _verticalVelocity -= Gravity * dt;
@@ -78,12 +79,12 @@ internal sealed class PlayerController
         Position = next;
     }
 
-    private void UpdateInteraction()
+    private void UpdateInteraction(InputState input)
     {
         var ray = new Ray3D(Position, LookDirection);
-        if (Raylib.IsMouseButtonPressed(MouseButton.Left))
+        if (input.MinePressed)
             _world.Mine(ray);
-        if (Raylib.IsMouseButtonPressed(MouseButton.Right))
+        if (input.PlacePressed)
             _world.Place(ray);
     }
 }
