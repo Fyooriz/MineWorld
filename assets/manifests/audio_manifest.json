@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "events": [
+    { "id": "ambient.wind", "category": "ambient", "spatial": true, "variants": [] },
+    { "id": "ambient.water", "category": "ambient", "spatial": true, "variants": [] },
+    { "id": "ambient.forest", "category": "ambient", "spatial": false, "variants": [] },
+    { "id": "ambient.cave", "category": "ambient", "spatial": false, "variants": [] },
+    { "id": "weather.rain", "category": "weather", "spatial": false, "variants": [] },
+    { "id": "weather.thunder", "category": "weather", "spatial": false, "variants": [] },
+    { "id": "music.exploration_day", "category": "music", "spatial": false, "variants": [] },
+    { "id": "music.exploration_night", "category": "music", "spatial": false, "variants": [] },
+    { "id": "music.caves", "category": "music", "spatial": false, "variants": [] },
+    { "id": "music.discovery", "category": "music", "spatial": false, "variants": [] }
+  ]
+}
