@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Raylib_cs;
 using System.Numerics;
 
 namespace MineWorld.Playable;
@@ -39,10 +38,13 @@ internal sealed class GameLoop
 
             _input.Poll();
             _fixedAccumulator += dt;
+            var mouseDelta = _input.ConsumeMouseDelta();
+            var firstSimulationStep = true;
 
             while (_fixedAccumulator >= FixedStepSeconds)
             {
-                _player.Update(FixedStepSeconds, _input);
+                _player.Update(FixedStepSeconds, _input, firstSimulationStep ? mouseDelta : Vector2.Zero);
+                firstSimulationStep = false;
                 _fixedAccumulator -= FixedStepSeconds;
             }
 
