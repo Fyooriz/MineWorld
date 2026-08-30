@@ -5,4 +5,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MineWorld.Core</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MineWorld.Playable.Tests" />
+  </ItemGroup>
 </Project>
