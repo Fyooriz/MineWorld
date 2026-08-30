@@ -28,4 +28,11 @@ internal sealed class InputState
         PlacePressed = Raylib.IsMouseButtonPressed(MouseButton.Right);
         SavePressed = Raylib.IsKeyPressed(KeyboardKey.F5);
     }
+
+    public Vector2 ConsumeMouseDelta()
+    {
+        var delta = MouseDelta;
+        MouseDelta = Vector2.Zero;
+        return delta;
+    }
 }
