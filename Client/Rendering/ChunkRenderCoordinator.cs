@@ -9,11 +9,13 @@ internal sealed class ChunkRenderCoordinator : IDisposable
     private readonly GpuChunkMeshUploader _gpu;
     private readonly ChunkVisibilityPolicy _visibility;
     private readonly int _chunkSize;
+    private readonly int _chunkHeight;
 
-    public ChunkRenderCoordinator(GpuChunkMeshUploader gpu, int chunkSize, int renderDistanceChunks = 8)
+    public ChunkRenderCoordinator(GpuChunkMeshUploader gpu, int chunkSize, int renderDistanceChunks = 8, int chunkHeight = 256)
     {
         _gpu = gpu;
         _chunkSize = Math.Max(1, chunkSize);
+        _chunkHeight = Math.Max(1, chunkHeight);
         _visibility = new ChunkVisibilityPolicy(renderDistanceChunks);
     }
 
@@ -26,28 +28,23 @@ internal sealed class ChunkRenderCoordinator : IDisposable
             _gpu.SetVisible(key, _visibility.IsVisible(key, cameraPosition, _chunkSize));
     }
 
-    public void UpdateVisibility(
-        IEnumerable<ChunkKey> residentChunks,
-        Vector3 cameraPosition,
-        Vector3 cameraForward,
-        float horizontalFovDegrees)
+    public void UpdateVisibility(IEnumerable<ChunkKey> residentChunks, Vector3 cameraPosition, Vector3 cameraForward, float horizontalFovDegrees)
     {
         foreach (var key in residentChunks)
         {
-            var visible = _visibility.IsVisible(
-                key,
-                cameraPosition,
-                cameraForward,
-                _chunkSize,
-                horizontalFovDegrees);
+            var visible = _visibility.IsVisible(key, cameraPosition, cameraForward, _chunkSize, horizontalFovDegrees);
             _gpu.SetVisible(key, visible);
         }
     }
 
-    public void Draw()
+    public void UpdateVisibility(IEnumerable<ChunkKey> residentChunks, Matrix4x4 viewProjection)
     {
-        _gpu.DrawVisible();
+        var frustum = Frustum3D.FromViewProjection(viewProjection);
+        foreach (var key in residentChunks)
+            _gpu.SetVisible(key, _visibility.IsVisible(key, frustum, _chunkSize, _chunkHeight));
     }
+
+    public void Draw() => _gpu.DrawVisible();
 
     public void Remove(ChunkKey key) => _gpu.Remove(key);
 
