@@ -1,8 +1,6 @@
 namespace MineWorld.Core.Entities;
 
-public readonly record struct EntityId(long Value);
 public readonly record struct EntityPosition(double X, double Y, double Z);
-public enum EntityKind { Passive, Neutral, Hostile, Npc, Projectile, Boss }
 
 public interface IEntity
 {
