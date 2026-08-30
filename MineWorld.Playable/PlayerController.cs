@@ -21,7 +21,7 @@ internal sealed class PlayerController
     public PlayerController(VoxelWorld world)
     {
         _world = world;
-        Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+        Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + EyeHeight, 0.5f);
     }
 
     public void Update(float dt, InputState input)
@@ -44,8 +44,11 @@ internal sealed class PlayerController
 
     private void UpdateMovement(float dt, InputState input)
     {
-        var forward = Vector3.Normalize(new Vector3(LookDirection.X, 0, LookDirection.Z));
-        var right = new Vector3(forward.Z, 0, -forward.X);
+        var horizontalLook = new Vector3(LookDirection.X, 0f, LookDirection.Z);
+        var forward = horizontalLook.LengthSquared() > 0.0001f
+            ? Vector3.Normalize(horizontalLook)
+            : Vector3.UnitZ;
+        var right = new Vector3(forward.Z, 0f, -forward.X);
         var move = Vector3.Zero;
 
         if (input.Forward) move += forward;
@@ -53,7 +56,7 @@ internal sealed class PlayerController
         if (input.Right) move += right;
         if (input.Left) move -= right;
 
-        if (move.LengthSquared() > 0)
+        if (move.LengthSquared() > 0f)
             move = Vector3.Normalize(move) * Speed * dt;
 
         var blockX = (int)MathF.Floor(Position.X);
@@ -61,8 +64,15 @@ internal sealed class PlayerController
         var ground = _world.GetSurfaceHeight(blockX, blockZ) + EyeHeight;
         var grounded = Position.Y <= ground + 0.02f;
 
-        if (grounded && input.JumpPressed)
-            _verticalVelocity = JumpVelocity;
+        if (grounded)
+        {
+            Position = new Vector3(Position.X, ground, Position.Z);
+            if (_verticalVelocity < 0f)
+                _verticalVelocity = 0f;
+
+            if (input.JumpPressed)
+                _verticalVelocity = JumpVelocity;
+        }
 
         _verticalVelocity -= Gravity * dt;
         var next = Position + move;
@@ -71,7 +81,7 @@ internal sealed class PlayerController
         if (next.Y < ground)
         {
             next.Y = ground;
-            _verticalVelocity = 0;
+            _verticalVelocity = 0f;
         }
 
         Position = next;
