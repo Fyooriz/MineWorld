@@ -9,4 +9,7 @@
     <ProjectReference Include="../MineWorld.Core/MineWorld.Core.csproj" />
     <PackageReference Include="Raylib-cs" Version="7.0.2" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="MineWorld.Playable.Tests" />
+  </ItemGroup>
 </Project>
