@@ -15,6 +15,7 @@ internal sealed class VoxelWorld
 
     private readonly int _renderDistance;
     private readonly Dictionary<(int X, int Z), VoxelChunk> _chunks = new();
+    private readonly Dictionary<(int X, int Y, int Z), byte> _overrides = new();
 
     public VoxelWorld(int seed, int renderDistance)
     {
@@ -25,6 +26,7 @@ internal sealed class VoxelWorld
 
     public int Seed { get; }
     public int LoadedChunkCount => _chunks.Count;
+    public IReadOnlyDictionary<(int X, int Y, int Z), byte> BlockOverrides => _overrides;
 
     public void StreamAround(float worldX, float worldZ)
     {
@@ -50,6 +52,9 @@ internal sealed class VoxelWorld
         if (y < 0 || y >= WorldHeight)
             return Air;
 
+        if (_overrides.TryGetValue((x, y, z), out var overridden))
+            return overridden;
+
         var chunkX = FloorDiv(x, VoxelChunk.Size);
         var chunkZ = FloorDiv(z, VoxelChunk.Size);
         var chunk = EnsureChunk(chunkX, chunkZ);
@@ -64,7 +69,27 @@ internal sealed class VoxelWorld
         var chunkX = FloorDiv(x, VoxelChunk.Size);
         var chunkZ = FloorDiv(z, VoxelChunk.Size);
         var chunk = EnsureChunk(chunkX, chunkZ);
+        var localX = FloorMod(x, VoxelChunk.Size);
+        var localZ = FloorMod(z, VoxelChunk.Size);
+        var generated = chunk.GetBlock(localX, y, localZ);
+
+        chunk.SetBlock(localX, y, localZ, block);
+        if (block == generated)
+            _overrides.Remove((x, y, z));
+        else
+            _overrides[(x, y, z)] = block;
+    }
+
+    public void ApplySavedBlock(int x, int y, int z, byte block)
+    {
+        if (y < 0 || y >= WorldHeight)
+            return;
+
+        var chunkX = FloorDiv(x, VoxelChunk.Size);
+        var chunkZ = FloorDiv(z, VoxelChunk.Size);
+        var chunk = EnsureChunk(chunkX, chunkZ);
         chunk.SetBlock(FloorMod(x, VoxelChunk.Size), y, FloorMod(z, VoxelChunk.Size), block);
+        _overrides[(x, y, z)] = block;
     }
 
     public void Draw()
@@ -149,6 +174,19 @@ internal sealed class VoxelWorld
                 var block = y == surface ? Grass : y > surface - 4 ? Dirt : Stone;
                 chunk.SetBlock(localX, y, localZ, block);
             }
+        }
+
+        foreach (var entry in _overrides)
+        {
+            if (FloorDiv(entry.Key.X, VoxelChunk.Size) != chunkX ||
+                FloorDiv(entry.Key.Z, VoxelChunk.Size) != chunkZ)
+                continue;
+
+            chunk.SetBlock(
+                FloorMod(entry.Key.X, VoxelChunk.Size),
+                entry.Key.Y,
+                FloorMod(entry.Key.Z, VoxelChunk.Size),
+                entry.Value);
         }
 
         _chunks[(chunkX, chunkZ)] = chunk;
