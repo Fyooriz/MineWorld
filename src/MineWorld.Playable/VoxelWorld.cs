@@ -1,3 +1,4 @@
+using MineWorld.Core.Inventory;
 using Raylib_cs;
 using System.Numerics;
 
@@ -86,20 +87,50 @@ internal sealed class VoxelWorld
             Raylib.DrawTriangle3D(mesh.Vertices[mesh.Indices[n]], mesh.Vertices[mesh.Indices[n + 1]], mesh.Vertices[mesh.Indices[n + 2]], new Color(color.R, color.G, color.B, color.A));
         }
     }
-    private void InvalidateMesh(int x, int z) => _meshCache.Remove((x, z));
-    public void Mine(Ray ray) => EditRay(ray, false); public void Place(Ray ray) => EditRay(ray, true);
 
-    private void EditRay(Ray ray, bool place)
+    private void InvalidateMesh(int x, int z) => _meshCache.Remove((x, z));
+
+    public bool Mine(Ray ray, Inventory inventory) => EditRay(ray, place: false, inventory);
+    public bool Place(Ray ray, Inventory inventory) => EditRay(ray, place: true, inventory);
+
+    private bool EditRay(Ray ray, bool place, Inventory inventory)
     {
+        ArgumentNullException.ThrowIfNull(inventory);
         var previous = ray.Position;
         for (var distance = 0.15f; distance < 8f; distance += 0.04f)
         {
-            var point = ray.Position + ray.Direction * distance; var x = (int)MathF.Floor(point.X); var y = (int)MathF.Floor(point.Y); var z = (int)MathF.Floor(point.Z);
-            if (GetBlock(x, y, z) == Air) { previous = point; continue; }
-            if (place) { var px = (int)MathF.Floor(previous.X); var py = (int)MathF.Floor(previous.Y); var pz = (int)MathF.Floor(previous.Z); if (GetBlock(px, py, pz) == Air) SetBlock(px, py, pz, Dirt); }
-            else SetBlock(x, y, z, Air); return;
+            var point = ray.Position + ray.Direction * distance;
+            var x = (int)MathF.Floor(point.X); var y = (int)MathF.Floor(point.Y); var z = (int)MathF.Floor(point.Z);
+            var block = GetBlock(x, y, z);
+            if (block == Air) { previous = point; continue; }
+
+            if (place)
+            {
+                var px = (int)MathF.Floor(previous.X); var py = (int)MathF.Floor(previous.Y); var pz = (int)MathF.Floor(previous.Z);
+                if (py >= 0 && py < WorldHeight && GetBlock(px, py, pz) == Air && inventory.TryRemove("core:dirt", 1))
+                {
+                    SetBlock(px, py, pz, Dirt);
+                    return true;
+                }
+                return false;
+            }
+
+            var itemId = ItemIdForBlock(block);
+            SetBlock(x, y, z, Air);
+            if (inventory.TryAdd(new ItemStack(itemId, 1))) return true;
+            SetBlock(x, y, z, block);
+            return false;
         }
+        return false;
     }
+
+    private static string ItemIdForBlock(byte block) => block switch
+    {
+        Grass => "core:grass",
+        Dirt => "core:dirt",
+        Stone => "core:stone",
+        _ => "core:unknown"
+    };
 
     private VoxelChunk EnsureChunk(int chunkX, int chunkZ)
     {
