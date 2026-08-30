@@ -1,3 +1,5 @@
+using MineWorld.Core.Inventory;
+using MineWorld.Core.Player;
 using Raylib_cs;
 using System.Numerics;
 
@@ -12,15 +14,17 @@ internal sealed class PlayerController
 
     public Vector3 Position { get; private set; }
     public Vector3 LookDirection { get; private set; } = Vector3.UnitZ;
+    public PlayerState State { get; }
 
     private readonly VoxelWorld _world;
     private float _yaw;
     private float _pitch;
     private float _verticalVelocity;
 
-    public PlayerController(VoxelWorld world)
+    public PlayerController(VoxelWorld world, PlayerState? state = null)
     {
         _world = world;
+        State = state ?? new PlayerState();
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
     }
 
@@ -81,10 +85,10 @@ internal sealed class PlayerController
 
     private void UpdateInteraction(InputState input)
     {
-        var ray = new Ray3D(Position, LookDirection);
+        var ray = new Ray(Position, LookDirection);
         if (input.MinePressed)
-            _world.Mine(ray);
+            _world.Mine(ray, State.Inventory);
         if (input.PlacePressed)
-            _world.Place(ray);
+            _world.Place(ray, State.Inventory);
     }
 }
