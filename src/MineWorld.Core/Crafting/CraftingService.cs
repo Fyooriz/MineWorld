@@ -1,10 +1,11 @@
+using InventoryModel = MineWorld.Core.Inventory.Inventory;
 using MineWorld.Core.Inventory;
 
 namespace MineWorld.Core.Crafting;
 
 public sealed class CraftingService
 {
-    public bool TryCraft(Inventory inventory, RecipeDefinition recipe, int times = 1)
+    public bool TryCraft(InventoryModel inventory, RecipeDefinition recipe, int times = 1)
     {
         ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(recipe);
