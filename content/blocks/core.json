@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "blocks": [
+    {
+      "id": "mineworld:air",
+      "display_name": "Air",
+      "hardness": 0.0,
+      "requires_tool": false,
+      "tool_class": null,
+      "solid": false,
+      "opaque": false,
+      "replaceable": true,
+      "flammable": false,
+      "gravity_affected": false,
+      "light_emission": 0,
+      "light_filter": 0,
+      "collision": "none",
+      "interaction_profile": "none",
+      "state_schema": [],
+      "tags": ["air", "replaceable"],
+      "version": 1
+    },
+    {
+      "id": "mineworld:stone",
+      "display_name": "Stone",
+      "hardness": 1.5,
+      "requires_tool": true,
+      "tool_class": "pickaxe",
+      "solid": true,
+      "opaque": true,
+      "replaceable": false,
+      "flammable": false,
+      "gravity_affected": false,
+      "light_emission": 0,
+      "light_filter": 15,
+      "collision": "full_block",
+      "interaction_profile": "solid_block",
+      "state_schema": [],
+      "tags": ["stone", "terrain"],
+      "version": 1
+    },
+    {
+      "id": "mineworld:dirt",
+      "display_name": "Dirt",
+      "hardness": 0.5,
+      "requires_tool": true,
+      "tool_class": "shovel",
+      "solid": true,
+      "opaque": true,
+      "replaceable": false,
+      "flammable": false,
+      "gravity_affected": false,
+      "light_emission": 0,
+      "light_filter": 15,
+      "collision": "full_block",
+      "interaction_profile": "solid_block",
+      "state_schema": [],
+      "tags": ["dirt", "terrain"],
+      "version": 1
+    },
+    {
+      "id": "mineworld:grass_block",
+      "display_name": "Grass Block",
+      "hardness": 0.6,
+      "requires_tool": true,
+      "tool_class": "shovel",
+      "solid": true,
+      "opaque": true,
+      "replaceable": false,
+      "flammable": false,
+      "gravity_affected": false,
+      "light_emission": 0,
+      "light_filter": 15,
+      "collision": "full_block",
+      "interaction_profile": "solid_block",
+      "state_schema": [
+        {
+          "name": "snowy",
+          "type": "bool",
+          "default": false,
+          "values": [false, true]
+        }
+      ],
+      "tags": ["grass", "terrain"],
+      "version": 1
+    },
+    {
+      "id": "mineworld:oak_log",
+      "display_name": "Oak Log",
+      "hardness": 2.0,
+      "requires_tool": true,
+      "tool_class": "axe",
+      "solid": true,
+      "opaque": true,
+      "replaceable": false,
+      "flammable": true,
+      "gravity_affected": false,
+      "light_emission": 0,
+      "light_filter": 15,
+      "collision": "full_block",
+      "interaction_profile": "solid_block",
+      "state_schema": [
+        {
+          "name": "axis",
+          "type": "enum",
+          "default": "y",
+          "values": ["x", "y", "z"]
+        }
+      ],
+      "tags": ["wood", "log", "flammable"],
+      "version": 1
+    }
+  ]
+}
