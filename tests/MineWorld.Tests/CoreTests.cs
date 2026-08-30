@@ -18,7 +18,7 @@ public sealed class CoreTests
     public void ChunkStoresAndReturnsBlocks()
     {
         var chunk = new Chunk(new ChunkCoordinate(2, -1, 4));
-        var stone = new BlockId("core:stone");
+        var stone = BlockId.Stone;
 
         chunk.SetBlock(3, 12, 7, stone);
 
