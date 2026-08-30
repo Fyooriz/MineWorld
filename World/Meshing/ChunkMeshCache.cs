@@ -5,7 +5,7 @@ using MineWorld.World.Chunks;
 
 namespace MineWorld.World.Meshing;
 
-/// <summary>CPU-side cache of chunk meshes. Rendering code can upload only dirty/rebuilt meshes.</summary>
+/// <summary>CPU-side cache of chunk meshes with boundary-aware invalidation.</summary>
 public sealed class ChunkMeshCache
 {
     private readonly ChunkMeshBuilder _builder;
@@ -21,16 +21,28 @@ public sealed class ChunkMeshCache
 
     public void MarkDirty(int chunkX, int chunkZ) => _dirty.Add((chunkX, chunkZ));
 
+    /// <summary>Marks the edited chunk and adjacent chunks when an edit touches a chunk boundary.</summary>
+    public void MarkBlockChanged(int chunkX, int chunkZ, int localX, int localZ, int chunkWidth, int chunkDepth)
+    {
+        if (chunkWidth <= 0) throw new ArgumentOutOfRangeException(nameof(chunkWidth));
+        if (chunkDepth <= 0) throw new ArgumentOutOfRangeException(nameof(chunkDepth));
+        if ((uint)localX >= (uint)chunkWidth) throw new ArgumentOutOfRangeException(nameof(localX));
+        if ((uint)localZ >= (uint)chunkDepth) throw new ArgumentOutOfRangeException(nameof(localZ));
+
+        MarkDirty(chunkX, chunkZ);
+        if (localX == 0) MarkDirty(chunkX - 1, chunkZ);
+        if (localX == chunkWidth - 1) MarkDirty(chunkX + 1, chunkZ);
+        if (localZ == 0) MarkDirty(chunkX, chunkZ - 1);
+        if (localZ == chunkDepth - 1) MarkDirty(chunkX, chunkZ + 1);
+    }
+
     public void MarkAllDirty(IEnumerable<(int X, int Z)> chunks)
     {
+        ArgumentNullException.ThrowIfNull(chunks);
         foreach (var chunk in chunks) _dirty.Add(chunk);
     }
 
-    public bool Rebuild(
-        int chunkX,
-        int chunkZ,
-        ChunkBlockStorage chunk,
-        Func<int, int, int, BlockState> sample)
+    public bool Rebuild(int chunkX, int chunkZ, ChunkBlockStorage chunk, Func<int, int, int, BlockState> sample)
     {
         ArgumentNullException.ThrowIfNull(chunk);
         ArgumentNullException.ThrowIfNull(sample);
