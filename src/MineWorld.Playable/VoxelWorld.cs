@@ -87,9 +87,9 @@ internal sealed class VoxelWorld
         }
     }
     private void InvalidateMesh(int x, int z) => _meshCache.Remove((x, z));
-    public void Mine(Ray3D ray) => EditRay(ray, false); public void Place(Ray3D ray) => EditRay(ray, true);
+    public void Mine(Ray ray) => EditRay(ray, false); public void Place(Ray ray) => EditRay(ray, true);
 
-    private void EditRay(Ray3D ray, bool place)
+    private void EditRay(Ray ray, bool place)
     {
         var previous = ray.Position;
         for (var distance = 0.15f; distance < 8f; distance += 0.04f)
