@@ -18,12 +18,12 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1-mesa-glx libx11-6 libxrandr2 libxi6 libxcursor1 libxinerama1 libxext6 libxfixes3
+          sudo apt-get install -y xvfb libgl1-mesa-dri libx11-6 libxrandr2 libxi6 libxcursor1 libxinerama1 libxext6 libxfixes3
       - name: Restore
         run: dotnet restore MineWorld.sln
-      - name: Build
-        run: dotnet build MineWorld.sln --configuration Release --no-restore
-      - name: Boot playable under virtual display
+      - name: Build Playable
+        run: dotnet build src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-restore
+      - name: Runtime boot under virtual display
         shell: bash
         run: |
           set +e
