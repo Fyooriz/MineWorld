@@ -20,6 +20,8 @@ public sealed class Inventory
     public bool TryAdd(ItemStack stack)
     {
         if (stack.IsEmpty) return true;
+        if (!HasCapacityFor(stack)) return false;
+
         var remaining = stack.Count;
 
         for (var i = 0; i < _slots.Length && remaining > 0; i++)
@@ -40,7 +42,7 @@ public sealed class Inventory
             remaining -= added;
         }
 
-        return remaining == 0;
+        return true;
     }
 
     public bool TryRemove(string itemId, int count)
@@ -61,4 +63,17 @@ public sealed class Inventory
     }
 
     public int Count(string itemId) => _slots.Where(s => s.ItemId == itemId).Sum(s => s.Count);
+
+    private bool HasCapacityFor(ItemStack stack)
+    {
+        long capacity = 0;
+        foreach (var slot in _slots)
+        {
+            if (slot.IsEmpty) capacity += _maxStackSize;
+            else if (slot.ItemId == stack.ItemId) capacity += Math.Max(0, _maxStackSize - slot.Count);
+            if (capacity >= stack.Count) return true;
+        }
+
+        return false;
+    }
 }
