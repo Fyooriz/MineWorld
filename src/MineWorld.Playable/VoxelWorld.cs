@@ -70,7 +70,7 @@ internal sealed class VoxelWorld
     {
         var aspect = viewportWidth / (float)Math.Max(1, viewportHeight);
         var frustum = Frustum.Create(cameraPosition, cameraTarget, Vector3.UnitY, 70f, aspect, 0.05f, (_renderDistance + 2) * VoxelChunk.Size);
-        foreach (var pair in _chunks)
+        foreach (var pair in _chunks.ToArray())
         {
             var chunk = pair.Value; var min = new Vector3(chunk.ChunkX * VoxelChunk.Size, 0, chunk.ChunkZ * VoxelChunk.Size);
             if (!frustum.Intersects(new BoundingBox(min, min + new Vector3(VoxelChunk.Size, WorldHeight, VoxelChunk.Size)))) continue;
@@ -96,17 +96,25 @@ internal sealed class VoxelWorld
     private bool EditRay(Ray ray, bool place, Inventory inventory)
     {
         ArgumentNullException.ThrowIfNull(inventory);
-        var previous = ray.Position;
+        var previousAir = (
+            X: (int)MathF.Floor(ray.Position.X),
+            Y: (int)MathF.Floor(ray.Position.Y),
+            Z: (int)MathF.Floor(ray.Position.Z));
+
         for (var distance = 0.15f; distance < 8f; distance += 0.04f)
         {
             var point = ray.Position + ray.Direction * distance;
             var x = (int)MathF.Floor(point.X); var y = (int)MathF.Floor(point.Y); var z = (int)MathF.Floor(point.Z);
             var block = GetBlock(x, y, z);
-            if (block == Air) { previous = point; continue; }
+            if (block == Air)
+            {
+                previousAir = (x, y, z);
+                continue;
+            }
 
             if (place)
             {
-                var px = (int)MathF.Floor(previous.X); var py = (int)MathF.Floor(previous.Y); var pz = (int)MathF.Floor(previous.Z);
+                var (px, py, pz) = previousAir;
                 if (py >= 0 && py < WorldHeight && GetBlock(px, py, pz) == Air && inventory.TryRemove("core:dirt", 1))
                 {
                     SetBlock(px, py, pz, Dirt);
