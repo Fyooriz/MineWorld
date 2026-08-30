@@ -6,7 +6,7 @@ namespace MineWorld.Playable;
 /// <summary>GPU-backed renderer boundary with chunk-level visibility delegated to the world renderer.</summary>
 internal sealed class RaylibRenderer : IRenderer
 {
-    private readonly Camera3D _camera;
+    private Camera3D _camera;
     public RaylibRenderer(int width, int height, string title)
     {
         Width = width; Height = height;
