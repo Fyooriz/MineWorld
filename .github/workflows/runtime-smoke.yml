@@ -1,0 +1,37 @@
+name: Runtime Smoke
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  runtime-boot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Install runtime dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri libgl1-mesa-glx libx11-6 libxrandr2 libxi6 libxcursor1 libxinerama1 libxext6 libxfixes3
+      - name: Restore
+        run: dotnet restore MineWorld.sln
+      - name: Build
+        run: dotnet build MineWorld.sln --configuration Release --no-restore
+      - name: Boot playable under virtual display
+        shell: bash
+        run: |
+          set +e
+          timeout --signal=TERM --kill-after=5s 15s xvfb-run -a dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build
+          code=$?
+          if [ "$code" -eq 124 ] || [ "$code" -eq 143 ]; then
+            echo "Runtime remained alive for the smoke-test window; boot considered successful."
+            exit 0
+          fi
+          echo "Runtime exited before the smoke-test window with code $code."
+          exit "$code"
