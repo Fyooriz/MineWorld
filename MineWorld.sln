@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineWorld.Playable", "src\M
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineWorld.Tests", "tests\MineWorld.Tests\MineWorld.Tests.csproj", "{3D0C7B92-8F14-4B7B-9C1D-6E2A5F0B4C02}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MineWorld.Playable.Tests", "tests\MineWorld.Playable.Tests\MineWorld.Playable.Tests.csproj", "{6F1D4C2A-7B35-4D89-AE12-9C6E8F0B5317}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,11 +22,15 @@ Global
 		{D0C3A7F1-3B6A-4B13-9A8D-8E8F1B8A1003}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D0C7B92-8F14-4B7B-9C1D-6E2A5F0B4C02}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{3D0C7B92-8F14-4B7B-9C1D-6E2A5F0B4C02}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F1D4C2A-7B35-4D89-AE12-9C6E8F0B5317}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F1D4C2A-7B35-4D89-AE12-9C6E8F0B5317}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9E0A0D53-8B6C-4F5B-9C3B-5D4B8A2F1E01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9E0A0D53-8B6C-4F5B-9C3B-5D4B8A2F1E01}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D0C3A7F1-3B6A-4B13-9A8D-8E8F1B8A1003}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0C3A7F1-3B6A-4B13-9A8D-8E8F1B8A1003}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3D0C7B92-8F14-4B7B-9C1D-6E2A5F0B4C02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D0C7B92-8F14-4B7B-9C1D-6E2A5F0B4C02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F1D4C2A-7B35-4D89-AE12-9C6E8F0B5317}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F1D4C2A-7B35-4D89-AE12-9C6E8F0B5317}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
