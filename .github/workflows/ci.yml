@@ -22,3 +22,21 @@ jobs:
         run: dotnet build MineWorld.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test MineWorld.sln --configuration Release --no-build --verbosity normal
+
+  runtime-boot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore MineWorld.sln
+      - name: Build Playable
+        run: dotnet build src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-restore
+      - name: Runtime boot under virtual display
+        env:
+          MINEWORLD_RUNTIME_BOOT: "1"
+        run: xvfb-run -a dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-restore
