@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Raylib_cs;
 
 namespace MineWorld.Playable;
@@ -19,27 +20,27 @@ internal sealed class GpuChunkMeshUploader : IDisposable
         }
 
         Remove(key);
-
-        var vertices = new Vector3[data.Vertices.Length];
-        Array.Copy(data.Vertices, vertices, vertices.Length);
+        var vertices = data.Vertices.ToArray();
         var indices = data.Indices.ToArray();
+        if (vertices.Length > ushort.MaxValue)
+            throw new InvalidOperationException("Chunk mesh exceeds the current 16-bit index limit.");
 
         var mesh = new Mesh
         {
             VertexCount = vertices.Length,
             TriangleCount = indices.Length / 3,
             Vertices = MemoryMarshal.Cast<Vector3, float>(vertices).ToArray(),
-            Indices = indices.Select(i => (ushort)i).ToArray()
+            Indices = indices.Select(i => checked((ushort)i)).ToArray()
         };
 
         Raylib.UploadMesh(ref mesh, false);
         _meshes[key] = mesh;
     }
 
-    public void Draw(ChunkKey key)
+    public void Draw(ChunkKey key, Material material)
     {
         if (_meshes.TryGetValue(key, out var mesh))
-            Raylib.DrawMesh(mesh, new Material(), Matrix4x4.Identity);
+            Raylib.DrawMesh(mesh, material, Matrix4x4.Identity);
     }
 
     public void Remove(ChunkKey key)
