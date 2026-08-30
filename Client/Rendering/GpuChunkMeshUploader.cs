@@ -15,6 +15,12 @@ internal sealed class GpuChunkMeshUploader : IDisposable
     }
 
     private readonly Dictionary<ChunkKey, ResidentMesh> _meshes = new();
+    private readonly int _chunkSize;
+
+    public GpuChunkMeshUploader(int chunkSize = 16)
+    {
+        _chunkSize = Math.Max(1, chunkSize);
+    }
 
     public int ResidentCount => _meshes.Count;
     public int VisibleCount => _meshes.Values.Count(m => m.Visible);
@@ -28,6 +34,9 @@ internal sealed class GpuChunkMeshUploader : IDisposable
         var indices = data.Indices.ToArray();
         if (vertices.Length > ushort.MaxValue)
             throw new InvalidOperationException("Chunk mesh exceeds the current 16-bit index limit.");
+
+        if (indices.Any(i => i < 0 || i >= vertices.Length))
+            throw new InvalidOperationException("Chunk mesh contains an out-of-range vertex index.");
 
         var mesh = new Mesh
         {
@@ -50,10 +59,16 @@ internal sealed class GpuChunkMeshUploader : IDisposable
 
     public void DrawVisible()
     {
-        foreach (var resident in _meshes.Values)
+        foreach (var pair in _meshes)
         {
+            var resident = pair.Value;
             if (!resident.Visible) continue;
-            Raylib.DrawMesh(resident.Mesh, resident.Material, Matrix4x4.Identity);
+
+            var transform = Matrix4x4.CreateTranslation(
+                pair.Key.X * _chunkSize,
+                0f,
+                pair.Key.Z * _chunkSize);
+            Raylib.DrawMesh(resident.Mesh, resident.Material, transform);
         }
     }
 
