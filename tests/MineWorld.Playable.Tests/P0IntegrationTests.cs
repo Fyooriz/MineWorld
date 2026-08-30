@@ -39,13 +39,28 @@ public sealed class P0IntegrationTests
         Assert.Equal(VoxelWorld.Dirt, world.GetBlock(x, y, z));
         Assert.Equal(0, inventory.Count("core:dirt"));
 
+        var entity = new TestEntity(
+            new EntityId("test:entity"),
+            EntityKind.Passive,
+            new EntityPosition(1, 2, 3));
+        entity.Tick(new EntityTickContext(Tick: 42, DeltaSeconds: 1.0 / 60.0));
+        Assert.Equal(1, entity.TickCount);
+        Assert.Equal(42, entity.LastTick);
+        Assert.Equal(new EntityPosition(1, 2, 3), entity.Position);
+
         var path = Path.Combine(Path.GetTempPath(), $"mineworld-p0-e2e-{Guid.NewGuid():N}.json");
         try
         {
-            WorldPersistence.Save(world, path);
-            var reloaded = WorldPersistence.Load(path, renderDistance: 1);
-            Assert.Equal(VoxelWorld.Dirt, reloaded.GetBlock(x, y, z));
-            Assert.Equal(world.Seed, reloaded.Seed);
+            WorldPersistence.Save(world, path, new[] { entity });
+            var reloaded = WorldPersistence.LoadState(path, renderDistance: 1);
+            Assert.Equal(VoxelWorld.Dirt, reloaded.World.GetBlock(x, y, z));
+            Assert.Equal(world.Seed, reloaded.World.Seed);
+            var savedEntity = Assert.Single(reloaded.Entities);
+            Assert.Equal(entity.Id.Value, savedEntity.Id);
+            Assert.Equal(entity.Kind, savedEntity.Kind);
+            Assert.Equal(entity.Position.X, savedEntity.X);
+            Assert.Equal(entity.Position.Y, savedEntity.Y);
+            Assert.Equal(entity.Position.Z, savedEntity.Z);
         }
         finally
         {
