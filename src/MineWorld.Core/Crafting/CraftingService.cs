@@ -13,7 +13,7 @@ public sealed class CraftingService
 
         var required = recipe.Ingredients
             .GroupBy(static item => item.ItemId)
-            .ToDictionary(static group => group.Key, static group => group.Sum(item => item.Count) * times);
+            .ToDictionary(static group => group.Key, group => group.Sum(item => item.Count) * times);
 
         foreach (var requirement in required)
             if (inventory.Count(requirement.Key) < requirement.Value)
