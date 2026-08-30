@@ -1,17 +1,23 @@
 using System.Text.Json;
+using MineWorld.Core.Entities;
 
 namespace MineWorld.Playable;
 
 internal sealed record SavedBlock(int X, int Y, int Z, byte Block);
-
-internal sealed record WorldSaveData(int Seed, List<SavedBlock> Blocks);
+internal sealed record WorldSaveData(int Seed, List<SavedBlock> Blocks, List<SavedEntity>? Entities = null);
 
 internal static class WorldPersistence
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     public static void Save(VoxelWorld world, string path)
+        => Save(world, path, []);
+
+    public static void Save(VoxelWorld world, string path, IEnumerable<IEntity> entities)
     {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(entities);
+
         var blocks = world.BlockOverrides
             .Select(static entry => new SavedBlock(entry.Key.X, entry.Key.Y, entry.Key.Z, entry.Value))
             .OrderBy(static block => block.Y)
@@ -19,15 +25,23 @@ internal static class WorldPersistence
             .ThenBy(static block => block.Z)
             .ToList();
 
-        var data = new WorldSaveData(world.Seed, blocks);
+        var savedEntities = entities
+            .Select(EntityPersistence.Capture)
+            .OrderBy(static entity => entity.Id, StringComparer.Ordinal)
+            .ToList();
+
+        var data = new WorldSaveData(world.Seed, blocks, savedEntities);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         File.WriteAllText(path, JsonSerializer.Serialize(data, Options));
     }
 
     public static VoxelWorld Load(string path, int renderDistance)
+        => LoadState(path, renderDistance).World;
+
+    public static LoadedWorldState LoadState(string path, int renderDistance)
     {
         if (!File.Exists(path))
-            return new VoxelWorld(12345, renderDistance);
+            return new LoadedWorldState(new VoxelWorld(12345, renderDistance), []);
 
         var json = File.ReadAllText(path);
         var data = JsonSerializer.Deserialize<WorldSaveData>(json)
@@ -37,6 +51,7 @@ internal static class WorldPersistence
         foreach (var block in data.Blocks)
             world.ApplySavedBlock(block.X, block.Y, block.Z, block.Block);
 
-        return world;
+        var entities = EntityPersistence.DeserializeEntities(JsonSerializer.Serialize(data.Entities ?? []));
+        return new LoadedWorldState(world, entities);
     }
 }
