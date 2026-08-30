@@ -55,7 +55,7 @@ internal sealed class ChunkVisibilityPolicy
     }
 }
 
-/// <summary>Six-plane view frustum for conservative AABB visibility tests.</summary
+/// <summary>Six-plane view frustum for conservative AABB visibility tests.</summary>
 internal readonly struct Frustum3D
 {
     private readonly Plane[] _planes;
