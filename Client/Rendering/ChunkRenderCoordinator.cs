@@ -26,6 +26,24 @@ internal sealed class ChunkRenderCoordinator : IDisposable
             _gpu.SetVisible(key, _visibility.IsVisible(key, cameraPosition, _chunkSize));
     }
 
+    public void UpdateVisibility(
+        IEnumerable<ChunkKey> residentChunks,
+        Vector3 cameraPosition,
+        Vector3 cameraForward,
+        float horizontalFovDegrees)
+    {
+        foreach (var key in residentChunks)
+        {
+            var visible = _visibility.IsVisible(
+                key,
+                cameraPosition,
+                cameraForward,
+                _chunkSize,
+                horizontalFovDegrees);
+            _gpu.SetVisible(key, visible);
+        }
+    }
+
     public void Draw()
     {
         _gpu.DrawVisible();
