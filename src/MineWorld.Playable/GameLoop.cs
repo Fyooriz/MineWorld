@@ -25,12 +25,13 @@ internal sealed class GameLoop
         _savePath = savePath;
     }
 
-    public void Run()
+    public void Run(int? maxFrames = null)
     {
         var stopwatch = Stopwatch.StartNew();
         var previous = stopwatch.Elapsed;
+        var frames = 0;
 
-        while (!_renderer.ShouldClose)
+        while (!_renderer.ShouldClose && (!maxFrames.HasValue || frames < maxFrames.Value))
         {
             var now = stopwatch.Elapsed;
             var dt = MathF.Min((float)(now - previous).TotalSeconds, MaxDeltaSeconds);
@@ -57,6 +58,7 @@ internal sealed class GameLoop
             _renderer.RenderWorld(_world);
             _renderer.DrawHud(_player, _world);
             _renderer.EndFrame();
+            frames++;
         }
 
         WorldPersistence.Save(_world, _savePath);
