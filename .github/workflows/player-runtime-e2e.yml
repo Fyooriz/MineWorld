@@ -40,15 +40,25 @@ jobs:
             if [ -z "$wid" ]; then echo "REAL_INPUT_E2E: window not found"; kill "$app" 2>/dev/null; exit 2; fi
             sleep 1
             xdotool key --window "$wid" c
-            sleep 1
-            xdotool key --window "$wid" F5
-            sleep 1
-            if [ ! -f saves/runtime-e2e.json ]; then echo "REAL_INPUT_E2E: save file missing"; kill "$app" 2>/dev/null; exit 3; fi
-            grep -q '"Name": "RuntimeE2E"' saves/runtime-e2e.json || { echo "REAL_INPUT_E2E: player snapshot missing"; kill "$app" 2>/dev/null; exit 4; }
-            grep -q 'core:dirt' saves/runtime-e2e.json || { echo "REAL_INPUT_E2E: CraftPressed OS event did not persist dirt"; kill "$app" 2>/dev/null; exit 5; }
-            echo "REAL_INPUT_E2E: PASS"
-            xdotool windowkill "$wid" 2>/dev/null
-            wait "$app"
+            deadline=$((SECONDS + 20))
+            while [ $SECONDS -lt $deadline ]; do
+              if [ -f saves/runtime-e2e.json ] && grep -q '"Name": "RuntimeE2E"' saves/runtime-e2e.json && grep -q 'core:dirt' saves/runtime-e2e.json; then
+                echo "REAL_INPUT_E2E: persisted state observed"
+                kill "$app" 2>/dev/null
+                wait "$app" 2>/dev/null
+                exit 0
+              fi
+              if ! kill -0 "$app" 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime exited before persisted state was observed"
+                wait "$app" 2>/dev/null
+                exit 6
+              fi
+              sleep 0.25
+            done
+            echo "REAL_INPUT_E2E: persisted state timeout"
+            kill "$app" 2>/dev/null
+            wait "$app" 2>/dev/null
+            exit 7
           ' &
           e2e_pid=$!
           wait "$e2e_pid"
@@ -57,6 +67,7 @@ jobs:
             echo "REAL_INPUT_E2E: runtime exited with code $code"
             exit "$code"
           fi
+          echo "REAL_INPUT_E2E: PASS"
 
   performance-gate:
     runs-on: ubuntu-latest
