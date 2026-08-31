@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json;
 using MineWorld.Core.Entities;
 using MineWorld.Core.Player;
@@ -19,12 +20,17 @@ internal static class WorldPersistence
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     public static void Save(VoxelWorld world, string path)
-        => Save(world, path, [], null);
+        => Save(world, path, [], null, null);
 
     public static void Save(VoxelWorld world, string path, IEnumerable<IEntity> entities)
-        => Save(world, path, entities, null);
+        => Save(world, path, entities, null, null);
 
-    public static void Save(VoxelWorld world, string path, IEnumerable<IEntity> entities, PlayerState? player)
+    public static void Save(
+        VoxelWorld world,
+        string path,
+        IEnumerable<IEntity> entities,
+        PlayerState? player,
+        Vector3? playerPosition = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(entities);
@@ -46,7 +52,7 @@ internal static class WorldPersistence
             world.Seed,
             blocks,
             savedEntities,
-            player is null ? null : PlayerPersistence.Capture(player));
+            player is null ? null : PlayerPersistence.Capture(player, playerPosition));
 
         var fullPath = Path.GetFullPath(path);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
@@ -92,11 +98,5 @@ internal static class WorldPersistence
 
         if (data.Blocks is null)
             throw new InvalidDataException("MineWorld save is missing its block list.");
-
-        if (data.SaveVersion == LegacySaveVersion)
-        {
-            // v0 was the pre-schema prototype format. It remains readable as a compatibility path.
-            return;
-        }
     }
 }
