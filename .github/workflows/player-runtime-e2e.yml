@@ -26,11 +26,11 @@ jobs:
       - name: Real input E2E under virtual display
         shell: bash
         run: |
-          rm -f saves/runtime-e2e.json
+          rm -f saves/runtime-e2e.json /tmp/mineworld-runtime-e2e.log
           mkdir -p saves
           set +e
           xvfb-run -a bash -c '
-            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=1200 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build &
+            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=1200 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
             app=$!
             for i in $(seq 1 40); do
               wid=$(xdotool search --name "MineWorld P0" 2>/dev/null | head -n 1)
@@ -38,10 +38,58 @@ jobs:
               sleep 0.25
             done
             if [ -z "$wid" ]; then echo "REAL_INPUT_E2E: window not found"; kill "$app" 2>/dev/null; exit 2; fi
+
+            xdotool windowraise "$wid" 2>/dev/null || true
+            xdotool windowactivate --sync "$wid" 2>/dev/null || true
+            xdotool windowfocus --sync "$wid" 2>/dev/null || true
             sleep 1
+            echo "REAL_INPUT_E2E: window=$wid active=$(xdotool getactivewindow 2>/dev/null || true)"
+
             xdotool key --window "$wid" c
+            craft_deadline=$((SECONDS + 8))
+            while [ $SECONDS -lt $craft_deadline ]; do
+              if grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+                echo "REAL_INPUT_E2E: craft input observed"
+                break
+              fi
+              if ! kill -0 "$app" 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime exited before craft input was observed"
+                wait "$app" 2>/dev/null
+                exit 6
+              fi
+              sleep 0.25
+            done
+            if ! grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+              echo "REAL_INPUT_E2E: craft input not observed"
+              tail -n 40 /tmp/mineworld-runtime-e2e.log 2>/dev/null || true
+              kill "$app" 2>/dev/null
+              wait "$app" 2>/dev/null
+              exit 8
+            fi
+
             xdotool key --window "$wid" F5
-            deadline=$((SECONDS + 20))
+            save_deadline=$((SECONDS + 8))
+            while [ $SECONDS -lt $save_deadline ]; do
+              if grep -q "REAL_INPUT_OBSERVED: craft=true save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null || grep -q "REAL_INPUT_OBSERVED: craft=false save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+                echo "REAL_INPUT_E2E: save input observed"
+                break
+              fi
+              if ! kill -0 "$app" 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime exited before save input was observed"
+                wait "$app" 2>/dev/null
+                exit 9
+              fi
+              sleep 0.25
+            done
+            if ! grep -q "REAL_INPUT_OBSERVED:.*save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+              echo "REAL_INPUT_E2E: save input not observed"
+              tail -n 40 /tmp/mineworld-runtime-e2e.log 2>/dev/null || true
+              kill "$app" 2>/dev/null
+              wait "$app" 2>/dev/null
+              exit 10
+            fi
+
+            deadline=$((SECONDS + 12))
             while [ $SECONDS -lt $deadline ]; do
               if [ -f saves/runtime-e2e.json ] && grep -q "\"Name\": \"RuntimeE2E\"" saves/runtime-e2e.json && grep -q "core:dirt" saves/runtime-e2e.json; then
                 echo "REAL_INPUT_E2E: persisted state observed"
@@ -57,6 +105,7 @@ jobs:
               sleep 0.25
             done
             echo "REAL_INPUT_E2E: persisted state timeout"
+            tail -n 60 /tmp/mineworld-runtime-e2e.log 2>/dev/null || true
             kill "$app" 2>/dev/null
             wait "$app" 2>/dev/null
             exit 7
