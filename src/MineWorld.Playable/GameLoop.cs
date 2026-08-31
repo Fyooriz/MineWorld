@@ -41,6 +41,8 @@ internal sealed class GameLoop
         var previous = stopwatch.Elapsed;
         var frames = 0;
 
+        SignalRuntimeE2EReady();
+
         while (!_renderer.ShouldClose && (!maxFrames.HasValue || frames < maxFrames.Value))
         {
             var now = stopwatch.Elapsed;
@@ -81,5 +83,17 @@ internal sealed class GameLoop
             firstSimulationStep = false;
             _fixedAccumulator -= FixedStepSeconds;
         }
+    }
+
+    private static void SignalRuntimeE2EReady()
+    {
+        var path = Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_E2E_READY_FILE");
+        if (!string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_E2E"), "1", StringComparison.Ordinal) || string.IsNullOrWhiteSpace(path))
+            return;
+
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        File.WriteAllText(path, "ready\n");
+        Console.WriteLine("REAL_INPUT_E2E: runtime_ready=true");
+        Console.Out.Flush();
     }
 }
