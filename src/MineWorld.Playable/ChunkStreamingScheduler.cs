@@ -44,6 +44,7 @@ internal sealed class ChunkStreamingScheduler
         }
 
         key = _pending.Dequeue();
+        _queued.Remove(key);
         return true;
     }
 
