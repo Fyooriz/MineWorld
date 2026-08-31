@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Numerics;
+using MineWorld.Core.Entities;
 
 namespace MineWorld.Playable;
 
-/// <summary>Owns frame timing and orchestration; gameplay and rendering stay independently testable.</summary>
+/// <summary>Owns frame timing and orchestration; gameplay, rendering, and entity simulation stay independently testable.</summary>
 internal sealed class GameLoop
 {
     private const float MaxDeltaSeconds = 0.05f;
@@ -13,16 +14,25 @@ internal sealed class GameLoop
     private readonly InputState _input;
     private readonly VoxelWorld _world;
     private readonly PlayerController _player;
+    private readonly EntityRuntime _entityRuntime;
     private readonly string _savePath;
     private float _fixedAccumulator;
+    private long _simulationTick;
 
-    public GameLoop(IRenderer renderer, InputState input, VoxelWorld world, PlayerController player, string savePath)
+    public GameLoop(
+        IRenderer renderer,
+        InputState input,
+        VoxelWorld world,
+        PlayerController player,
+        string savePath,
+        EntityRuntime? entityRuntime = null)
     {
         _renderer = renderer;
         _input = input;
         _world = world;
         _player = player;
         _savePath = savePath;
+        _entityRuntime = entityRuntime ?? new EntityRuntime();
     }
 
     public void Run(int? maxFrames = null)
@@ -44,7 +54,9 @@ internal sealed class GameLoop
 
             while (_fixedAccumulator >= FixedStepSeconds)
             {
+                var context = new EntityTickContext(++_simulationTick, FixedStepSeconds);
                 _player.Update(FixedStepSeconds, _input, firstSimulationStep ? mouseDelta : Vector2.Zero);
+                _entityRuntime.Tick(context);
                 firstSimulationStep = false;
                 _fixedAccumulator -= FixedStepSeconds;
             }
@@ -52,7 +64,7 @@ internal sealed class GameLoop
             _world.StreamAround(_player.Position.X, _player.Position.Z);
 
             if (_input.SavePressed)
-                WorldPersistence.Save(_world, _savePath);
+                WorldPersistence.Save(_world, _savePath, GetEntities());
 
             _renderer.BeginFrame(_player.Position, _player.Position + _player.LookDirection);
             _renderer.RenderWorld(_world);
@@ -61,6 +73,25 @@ internal sealed class GameLoop
             frames++;
         }
 
-        WorldPersistence.Save(_world, _savePath);
+        WorldPersistence.Save(_world, _savePath, GetEntities());
     }
+
+    private IReadOnlyList<IEntity> GetEntities()
+    {
+        var entities = new List<IEntity>(_entityRuntime.Count);
+        foreach (var id in GetActiveEntityIds())
+        {
+            if (_entityRuntime.TryGet(id, out var entity))
+                entities.Add(entity);
+        }
+
+        return entities;
+    }
+
+    private IEnumerable<EntityId> GetActiveEntityIds()
+    {
+        return _activeIdsCache.ToArray();
+    }
+
+    private readonly List<EntityId> _activeIdsCache = [];
 }
