@@ -1,3 +1,4 @@
+using System.Numerics;
 using MineWorld.Core.Inventory;
 using MineWorld.Core.Player;
 
@@ -17,7 +18,14 @@ internal static class Program
             : loaded.Player is null
                 ? new PlayerState()
                 : PlayerPersistence.Restore(loaded.Player);
-        var player = new PlayerController(loaded.World, state: state, initialLookDirection: System.Numerics.Vector3.UnitZ);
+        var initialPosition = loaded.Player?.Position is { } position
+            ? new Vector3(position.X, position.Y, position.Z)
+            : (Vector3?)null;
+        var player = new PlayerController(
+            loaded.World,
+            state: state,
+            initialLookDirection: Vector3.UnitZ,
+            initialPosition: runtimeE2E ? null : initialPosition);
         var input = new InputState();
 
         using IRenderer renderer = new RaylibRenderer(1280, 720, "MineWorld P0");
