@@ -15,7 +15,7 @@ public sealed class P1ChunkGenerationCancellationTests
             generate: requestedKey =>
             {
                 Interlocked.Increment(ref calls);
-                return new ChunkMesh(requestedKey, Array.Empty<ChunkVertex>());
+                return new ChunkMeshData(Array.Empty<Vector3>(), Array.Empty<int>(), Array.Empty<ColorRgba>());
             });
 
         try
