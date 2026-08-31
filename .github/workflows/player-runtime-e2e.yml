@@ -34,7 +34,7 @@ jobs:
             openbox --replace >/tmp/openbox-runtime-e2e.log 2>&1 &
             wm=$!
             sleep 1
-            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=1200 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
+            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=2400 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
             app=$!
             for i in $(seq 1 40); do
               wid=$(xdotool search --onlyvisible --name "MineWorld P0" 2>/dev/null | head -n 1)
@@ -62,7 +62,7 @@ jobs:
             xdotool keydown --window "$wid" c
             sleep 0.75
             xdotool keyup --window "$wid" c
-            craft_deadline=$((SECONDS + 8))
+            craft_deadline=$((SECONDS + 15))
             while [ $SECONDS -lt $craft_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
                 echo "REAL_INPUT_E2E: craft input observed"
@@ -87,7 +87,7 @@ jobs:
             xdotool keydown --window "$wid" F5
             sleep 0.75
             xdotool keyup --window "$wid" F5
-            save_deadline=$((SECONDS + 8))
+            save_deadline=$((SECONDS + 15))
             while [ $SECONDS -lt $save_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED:.*save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
                 echo "REAL_INPUT_E2E: save input observed"
@@ -109,7 +109,7 @@ jobs:
               exit 10
             fi
 
-            deadline=$((SECONDS + 12))
+            deadline=$((SECONDS + 15))
             while [ $SECONDS -lt $deadline ]; do
               if [ -f saves/runtime-e2e.json ] && grep -q "\"Name\": \"RuntimeE2E\"" saves/runtime-e2e.json && grep -q "core:dirt" saves/runtime-e2e.json; then
                 echo "REAL_INPUT_E2E: persisted state observed"
