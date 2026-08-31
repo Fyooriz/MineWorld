@@ -1,5 +1,5 @@
 using MineWorld.Core.Crafting;
-using MineWorld.Core.Inventory;
+using MineWorld.Core.Player;
 
 namespace MineWorld.Playable;
 
@@ -14,14 +14,9 @@ internal sealed class PlayerActionLayer
         _p0Recipe = p0Recipe ?? throw new ArgumentNullException(nameof(p0Recipe));
     }
 
-    public bool TryCraft(PlayerStateAdapter player)
+    public bool TryCraft(PlayerState player)
     {
         ArgumentNullException.ThrowIfNull(player);
         return _crafting.TryCraft(player.Inventory, _p0Recipe);
     }
-}
-
-internal interface PlayerStateAdapter
-{
-    Inventory Inventory { get; }
 }
