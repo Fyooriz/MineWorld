@@ -65,8 +65,7 @@ internal sealed class ChunkGenerationScheduler : IDisposable
         {
             if (!_work.TryDequeue(out var key))
             {
-                try { await Task.Delay(2, _shutdown.Token).ConfigureAwait(false); }
-                catch (OperationCanceledException) { }
+                await Task.Delay(1, _shutdown.Token).ConfigureAwait(false);
                 continue;
             }
 
@@ -78,18 +77,14 @@ internal sealed class ChunkGenerationScheduler : IDisposable
             }
             catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
             {
+                lock (_gate)
+                    _inFlight.Remove(key);
             }
             catch
             {
-                lock (_gate) _inFlight.Remove(key);
-                throw;
-            }
-            finally
-            {
-                if (_shutdown.IsCancellationRequested)
-                {
-                    lock (_gate) _inFlight.Remove(key);
-                }
+                // A generation failure invalidates this request, but must not kill the worker pool.
+                lock (_gate)
+                    _inFlight.Remove(key);
             }
         }
     }
@@ -97,8 +92,19 @@ internal sealed class ChunkGenerationScheduler : IDisposable
     public void Dispose()
     {
         _shutdown.Cancel();
-        try { Task.WaitAll(_workers.ToArray(), TimeSpan.FromSeconds(2)); }
-        catch (AggregateException) { }
-        _shutdown.Dispose();
+        try
+        {
+            Task.WaitAll(_workers.ToArray(), TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException)
+        {
+            // Shutdown is best-effort; no completed result may be published after cancellation.
+        }
+        finally
+        {
+            _shutdown.Dispose();
+            lock (_gate)
+                _inFlight.Clear();
+        }
     }
 }
