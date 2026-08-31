@@ -8,47 +8,58 @@ Working branch: `feature/p0-save-schema-player-restore`
 
 | Field | Status |
 |---|---|
-| Requested | Audit P0 and continue implementation under Ω-MINEWORLD FRONTIER v50.0 |
-| Decided | Preserve the current modular P0 architecture; fix verified persistence gaps before feature expansion |
-| Implemented | Explicit save format version; legacy v0 read compatibility; unsupported-version rejection; missing-block validation; atomic save replacement; player restore during startup; regression tests |
-| Verified | Repository contents, current `main` commit, source changes, workflow configuration, and PR creation |
-| Tested | Regression tests added; CI execution not yet observed from the available GitHub workflow-run endpoint |
-| Failed | Local clone/build attempt failed because this execution environment could not resolve `github.com` |
-| Why | Network/DNS limitation of the execution environment, not a repository test result |
-| Remaining | Obtain CI build/test result; then review/merge if green |
-| Blocked by | External CI execution evidence for build/test verification |
-| Next | Inspect PR #3 CI result; fix any compile/test failures before merge |
+| Requested | CI/debug PR #3; deep P0 audit; start P1 world/chunk architecture under Ω-MINEWORLD FRONTIER v50.0 |
+| Decided | Preserve the modular P0 architecture; fix correctness gaps before expanding gameplay; establish P1 world/chunk ownership and coordinate boundaries incrementally |
+| Implemented | Save format v1 + legacy v0 compatibility; unsupported-version rejection; missing-block validation; atomic save replacement; player identity/health/inventory restore; player-position persistence; bounded runtime chunk streaming; canonical horizontal chunk conversion; generated-chunk in-flight deduplication until completion is consumed; P1 world/chunk architecture document; regression tests |
+| Verified | Repository contents, PR #3 creation, PR diff, historical CI execution, successful build/test/performance jobs on earlier PR commits, and the recorded E2E failure modes |
+| Tested | New regression tests are committed; latest head CI is queued and its final result has not yet been observed |
+| Failed | Local clone/build remains unavailable because this execution environment could not resolve `github.com`; prior PR Runtime E2E failed during synthetic keyboard delivery/focus handling |
+| Why | Local network/DNS limitation; CI failure was in the external input harness rather than build initialization, which succeeded |
+| Remaining | Observe latest CI for the new changes; debug any real-input failure that remains; continue P1 chunk lifecycle/generation integration and verification |
+| Blocked by | Final CI evidence for the latest head before claiming the branch verified or merging |
+| Next | Inspect latest CI result; then implement/test P1 chunk lifecycle, deterministic generation, async cancellation, and persistence-safe unload semantics |
 
-## P0 observations
+## P0 deep-audit findings
 
-The repository already contains a substantial P0 implementation beyond a pure scaffold, including:
-
-- .NET 8 core/playable/test projects.
-- A fixed-step gameplay loop.
-- Procedural seeded voxel terrain and 16×16 chunk storage.
-- Block mining/placement and inventory/crafting interactions.
-- Chunk visibility/meshing code with asynchronous scheduling infrastructure.
-- Entity lifecycle and persistence snapshots.
-- Runtime boot and runtime E2E workflow definitions.
-
-These observations are repository-state findings, not a claim that P0 is fully verified.
+1. The previous runtime E2E failure was not a compile failure. The application built successfully and Raylib initialized under the virtual display. The failure occurred because the test did not reliably deliver/observe the `C` key through Raylib's input polling path.
+2. The runtime world previously only accumulated chunks as the player moved. P1 now bounds the loaded set to the configured horizontal radius and removes disposable mesh entries for unloaded chunks.
+3. World-to-chunk math is now centralized behind `HorizontalChunkCoordinate`, including negative-coordinate floor semantics.
+4. The save boundary previously persisted player identity/health/inventory but not the player's runtime position. Position persistence is now explicit and optional for backward compatibility.
+5. Background generation previously removed a chunk from `_inFlight` as soon as it entered the completion queue, allowing duplicate generation requests before commit. `_inFlight` now remains reserved until the completed result is consumed.
 
 ## Persistence decision
 
-MineWorld save data now carries `SaveVersion`.
+MineWorld save data carries `SaveVersion`.
 
 - `1` is the current P0 format.
 - `0` is accepted as the legacy pre-version JSON shape created before explicit versioning.
 - Unknown versions are rejected.
 - Save writes use a temporary file and replacement to reduce partial-file risk.
-- Player identity, health, and inventory are restored at startup when persisted player state exists.
+- Player identity, health, inventory, and (when present) runtime position are persisted/restored.
 
 This remains a MineWorld-native save model; Minecraft Java/Bedrock references are treated as engineering evidence only and are not copied as proprietary implementation or game-specific formats.
 
+## P1 status
+
+`docs/P1_WORLD_CHUNK_ARCHITECTURE.md` establishes the current architecture baseline for:
+
+- world/chunk ownership boundaries;
+- horizontal chunk coordinate semantics;
+- chunk lifecycle states;
+- bounded streaming;
+- authoritative mutation vs render cache separation;
+- asynchronous generation/meshing commit boundaries;
+- memory/resource governance;
+- future extension points without finalizing unapproved mechanics.
+
+`HorizontalChunkCoordinate` and P1 regression tests provide the first implementation slice.
+
+**P1 status: ARCHITECTURE BASELINE + INITIAL IMPLEMENTATION / NOT VERIFIED**
+
 ## Verification boundary
 
-The environment could not clone the repository directly and therefore did not produce a local build/test log. GitHub CI is the required external verifier for the branch.
+The environment could not clone the repository directly and therefore did not produce a local build/test log. GitHub Actions is the external verifier.
 
-Until a green CI result is observed:
+The latest head has queued CI runs for `.NET`, Runtime Smoke, Player Runtime E2E, and MineWorld CI. Until their final conclusions are observed:
 
-**P0 status remains PARTIAL / NOT VERIFIED.**
+**Overall status: PARTIAL / NOT VERIFIED**
