@@ -1,0 +1,75 @@
+name: Player Runtime E2E
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  real-input-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Install runtime and input dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xdotool libgl1-mesa-dri libx11-6 libxrandr2 libxi6 libxcursor1 libxinerama1 libxext6 libxfixes3
+      - name: Restore
+        run: dotnet restore MineWorld.sln
+      - name: Build Playable
+        run: dotnet build src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-restore
+      - name: Real input E2E under virtual display
+        shell: bash
+        run: |
+          rm -f saves/runtime-e2e.json
+          mkdir -p saves
+          set +e
+          xvfb-run -a bash -c '
+            dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build &
+            app=$!
+            for i in $(seq 1 40); do
+              wid=$(xdotool search --name "MineWorld P0" 2>/dev/null | head -n 1)
+              if [ -n "$wid" ]; then break; fi
+              sleep 0.25
+            done
+            if [ -z "$wid" ]; then echo "REAL_INPUT_E2E: window not found"; kill "$app" 2>/dev/null; exit 2; fi
+            xdotool windowactivate "$wid"
+            sleep 1
+            xdotool key c
+            sleep 1
+            xdotool key F5
+            sleep 1
+            wait "$app"
+            exit $?
+          ' &
+          e2e_pid=$!
+          wait "$e2e_pid"
+          code=$?
+          if [ "$code" -ne 0 ]; then
+            echo "REAL_INPUT_E2E: runtime exited with code $code"
+            exit "$code"
+          fi
+          if [ ! -f saves/runtime-e2e.json ]; then echo "REAL_INPUT_E2E: save file missing"; exit 3; fi
+          grep -q '"Name": "RuntimeE2E"' saves/runtime-e2e.json || { echo "REAL_INPUT_E2E: player snapshot missing"; exit 4; }
+          grep -q 'core:dirt' saves/runtime-e2e.json || { echo "REAL_INPUT_E2E: CraftPressed OS event did not persist dirt"; exit 5; }
+          echo "REAL_INPUT_E2E: PASS"
+
+  performance-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore MineWorld.sln
+      - name: Build tests
+        run: dotnet build tests/MineWorld.Playable.Tests/MineWorld.Playable.Tests.csproj --configuration Release --no-restore
+      - name: Measured entity runtime benchmark
+        run: dotnet test tests/MineWorld.Playable.Tests/MineWorld.Playable.Tests.csproj --configuration Release --no-build --filter FullyQualifiedName~PlayerRuntimePerformanceTests.EntityRuntimeTickThroughputIsMeasured --logger "console;verbosity=detailed"
