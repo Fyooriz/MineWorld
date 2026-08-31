@@ -1,4 +1,5 @@
 using System.Numerics;
+using MineWorld.Core.Crafting;
 using MineWorld.Core.Entities;
 using MineWorld.Playable;
 using Raylib_cs;
@@ -8,54 +9,34 @@ namespace MineWorld.Playable.Tests;
 public sealed class PlayerE2ETests
 {
     [Fact]
-    public void DeterministicInputDrivesPlayerMiningAndPlacement()
+    public void DeterministicInputDrivesPlayerMiningCraftingAndPlacement()
     {
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
-        var player = new PlayerController(world);
+        var player = new PlayerController(world, initialLookDirection: -Vector3.UnitY);
         var input = new InputState();
         var surfaceY = world.GetSurfaceHeight(0, 0);
 
         input.SetFrame(new InputFrame(
-            MouseDelta: new Vector2(0, 600),
-            Forward: false,
-            Backward: false,
-            Left: false,
-            Right: false,
-            JumpPressed: false,
-            MinePressed: false,
-            PlacePressed: false,
-            SavePressed: false));
-        player.Update(1f / 60f, input, input.ConsumeMouseDelta());
-
-        input.SetFrame(new InputFrame(
-            MouseDelta: Vector2.Zero,
-            Forward: false,
-            Backward: false,
-            Left: false,
-            Right: false,
-            JumpPressed: false,
-            MinePressed: true,
-            PlacePressed: false,
-            SavePressed: false));
+            Vector2.Zero, false, false, false, false, false, true, false, false));
         player.Update(1f / 60f, input, Vector2.Zero);
 
         Assert.Equal(VoxelWorld.Air, world.GetBlock(0, surfaceY, 0));
         Assert.Equal(1, player.State.Inventory.Count("core:grass"));
 
+        var recipe = new RecipeDefinition(
+            "p0:dirt-from-grass",
+            new[] { new ItemStack("core:grass", 1) },
+            new ItemStack("core:dirt", 1));
+        Assert.True(new CraftingService().TryCraft(player.State.Inventory, recipe));
+        Assert.Equal(0, player.State.Inventory.Count("core:grass"));
+        Assert.Equal(1, player.State.Inventory.Count("core:dirt"));
+
         input.SetFrame(new InputFrame(
-            MouseDelta: Vector2.Zero,
-            Forward: false,
-            Backward: false,
-            Left: false,
-            Right: false,
-            JumpPressed: false,
-            MinePressed: false,
-            PlacePressed: true,
-            SavePressed: false));
+            Vector2.Zero, false, false, false, false, false, false, true, false));
         player.Update(1f / 60f, input, Vector2.Zero);
 
-        Assert.Equal(VoxelWorld.Grass, world.GetBlock(0, surfaceY, 0));
-        Assert.Equal(0, player.State.Inventory.Count("core:grass"));
+        Assert.Equal(VoxelWorld.Dirt, world.GetBlock(0, surfaceY, 0));
+        Assert.Equal(0, player.State.Inventory.Count("core:dirt"));
     }
 
     [Fact]
