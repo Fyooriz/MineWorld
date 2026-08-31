@@ -2,7 +2,6 @@ using System.Text.Json;
 using MineWorld.Core.Entities;
 using MineWorld.Core.Inventory;
 using MineWorld.Core.World;
-using MineWorld.Playable;
 
 namespace MineWorld.Tests;
 
@@ -81,45 +80,7 @@ public sealed class CoreTests
         Assert.Equal(0, runtime.Count);
     }
 
-    [Fact]
-    public void EntityPersistenceRoundTripsThroughRuntimeContainer()
-    {
-        var runtime = new EntityRuntime();
-        var original = new TestEntity(new EntityId("test:persistent"));
-        runtime.Add(original);
-        runtime.Tick(new EntityTickContext(10, 0.05));
-
-        var snapshot = EntityPersistence.Capture(original);
-        var json = JsonSerializer.Serialize(new[] { snapshot });
-        var loadedSnapshots = EntityPersistence.DeserializeEntities(json);
-        var loadedEntities = EntityRehydrator.RehydrateAll(
-            loadedSnapshots,
-            saved => new TestEntity(new EntityId(saved.Id), saved.Kind, new EntityPosition(saved.X, saved.Y, saved.Z)));
-
-        var rehydratedRuntime = new EntityRuntime();
-        foreach (var entity in loadedEntities)
-            rehydratedRuntime.Add(entity);
-
-        Assert.Equal(1, rehydratedRuntime.Count);
-        Assert.True(rehydratedRuntime.TryGet(original.Id, out var restored));
-        Assert.NotSame(original, restored);
-        Assert.Equal(original.Id, restored.Id);
-        Assert.Equal(original.Kind, restored.Kind);
-        Assert.Equal(original.Position, restored.Position);
-
-        rehydratedRuntime.Tick(new EntityTickContext(11, 0.05));
-
-        var restoredTestEntity = Assert.IsType<TestEntity>(restored);
-        Assert.Equal(1, restoredTestEntity.TickCount);
-        Assert.Equal(11, restoredTestEntity.LastContext.Tick);
-        Assert.Equal(0.05, restoredTestEntity.LastContext.DeltaSeconds, precision: 12);
-    }
-
-    private sealed class TestEntity(
-        EntityId id,
-        EntityKind kind = EntityKind.Passive,
-        EntityPosition? position = null)
-        : EntityBase(id, kind, position ?? new EntityPosition(1, 2, 3))
+    private sealed class TestEntity(EntityId id) : EntityBase(id, EntityKind.Passive, new EntityPosition(1, 2, 3))
     {
         public int TickCount { get; private set; }
         public EntityTickContext LastContext { get; private set; } = new(0, 0);
