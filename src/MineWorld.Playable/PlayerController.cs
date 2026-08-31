@@ -25,12 +25,15 @@ internal sealed class PlayerController
         VoxelWorld world,
         PlayerState? state = null,
         Vector3? initialLookDirection = null,
-        PlayerActionLayer? actions = null)
+        PlayerActionLayer? actions = null,
+        Vector3? initialPosition = null)
     {
         _world = world;
         State = state ?? new PlayerState();
         _actions = actions ?? new PlayerActionLayer();
-        Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+        Position = initialPosition ?? new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+        if (!float.IsFinite(Position.X) || !float.IsFinite(Position.Y) || !float.IsFinite(Position.Z))
+            throw new ArgumentException("Initial player position must contain finite coordinates.", nameof(initialPosition));
 
         var direction = initialLookDirection is { } initial && initial.LengthSquared() > 0.0001f
             ? Vector3.Normalize(initial)
