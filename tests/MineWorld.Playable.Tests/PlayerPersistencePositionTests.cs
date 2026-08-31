@@ -1,4 +1,5 @@
 using System.Numerics;
+using MineWorld.Core.Inventory;
 using MineWorld.Core.Player;
 
 namespace MineWorld.Playable.Tests;
@@ -28,10 +29,16 @@ public sealed class PlayerPersistencePositionTests
     }
 
     [Fact]
-    public void DeserializeRejectsNonFiniteSavedPosition()
+    public void RestoreRejectsNonFiniteSavedPosition()
     {
-        const string json = "{\"Id\":\"00000000-0000-0000-0000-000000000001\",\"Name\":\"Player\",\"Health\":20,\"Capacity\":1,\"Slots\":[{\"ItemId\":\"\",\"Count\":0}],\"Position\":{\"X\":\"NaN\",\"Y\":0,\"Z\":0}}";
+        var invalid = new SavedPlayerState(
+            Guid.NewGuid(),
+            "Player",
+            20f,
+            1,
+            new ItemStack[] { default },
+            new SavedPlayerPosition(float.NaN, 0f, 0f));
 
-        Assert.Throws<InvalidDataException>(() => PlayerPersistence.Deserialize(json));
+        Assert.Throws<InvalidDataException>(() => PlayerPersistence.Restore(invalid));
     }
 }
