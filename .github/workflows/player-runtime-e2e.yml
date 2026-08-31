@@ -42,7 +42,7 @@ jobs:
             xdotool key --window "$wid" c
             deadline=$((SECONDS + 20))
             while [ $SECONDS -lt $deadline ]; do
-              if [ -f saves/runtime-e2e.json ] && grep -q '"Name": "RuntimeE2E"' saves/runtime-e2e.json && grep -q 'core:dirt' saves/runtime-e2e.json; then
+              if [ -f saves/runtime-e2e.json ] && grep -q "\"Name\": \"RuntimeE2E\"" saves/runtime-e2e.json && grep -q "core:dirt" saves/runtime-e2e.json; then
                 echo "REAL_INPUT_E2E: persisted state observed"
                 kill "$app" 2>/dev/null
                 wait "$app" 2>/dev/null
