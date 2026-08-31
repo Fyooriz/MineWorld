@@ -40,6 +40,7 @@ jobs:
             if [ -z "$wid" ]; then echo "REAL_INPUT_E2E: window not found"; kill "$app" 2>/dev/null; exit 2; fi
             sleep 1
             xdotool key --window "$wid" c
+            xdotool key --window "$wid" F5
             deadline=$((SECONDS + 20))
             while [ $SECONDS -lt $deadline ]; do
               if [ -f saves/runtime-e2e.json ] && grep -q "\"Name\": \"RuntimeE2E\"" saves/runtime-e2e.json && grep -q "core:dirt" saves/runtime-e2e.json; then
