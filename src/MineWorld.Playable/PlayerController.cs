@@ -1,4 +1,3 @@
-using MineWorld.Core.Inventory;
 using MineWorld.Core.Player;
 using Raylib_cs;
 using System.Numerics;
@@ -17,14 +16,20 @@ internal sealed class PlayerController
     public PlayerState State { get; }
 
     private readonly VoxelWorld _world;
+    private readonly PlayerActionLayer _actions;
     private float _yaw;
     private float _pitch;
     private float _verticalVelocity;
 
-    public PlayerController(VoxelWorld world, PlayerState? state = null, Vector3? initialLookDirection = null)
+    public PlayerController(
+        VoxelWorld world,
+        PlayerState? state = null,
+        Vector3? initialLookDirection = null,
+        PlayerActionLayer? actions = null)
     {
         _world = world;
         State = state ?? new PlayerState();
+        _actions = actions ?? new PlayerActionLayer();
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
 
         var direction = initialLookDirection is { } initial && initial.LengthSquared() > 0.0001f
@@ -98,6 +103,8 @@ internal sealed class PlayerController
         var ray = new Ray(Position, LookDirection);
         if (input.MinePressed)
             _world.Mine(ray, State.Inventory);
+        if (input.CraftPressed)
+            _actions.TryCraft(State);
         if (input.PlacePressed)
             _world.Place(ray, State.Inventory);
     }
