@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using MineWorld.Core.Entities;
+using MineWorld.Core.Inventory;
 using MineWorld.Playable;
 using Raylib_cs;
 
@@ -13,42 +14,56 @@ public sealed class PlayerE2ETests
     {
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
         var player = new PlayerController(world, initialLookDirection: -Vector3.UnitY);
+        player.State.Name = "P0-E2E";
+        player.State.Health = 17.5f;
         var input = new InputState();
         var entities = new EntityRuntime();
         var entity = new TestEntity(new EntityId("test:player-e2e"), new EntityPosition(1, 2, 3));
         entities.Add(entity);
+        player.State.Inventory.TryAdd(new ItemStack("core:grass", 1));
         var surfaceY = world.GetSurfaceHeight(0, 0);
         var path = Path.Combine(Path.GetTempPath(), $"mineworld-player-e2e-{Guid.NewGuid():N}.json");
 
         try
         {
-            // Input → mining → inventory.
+            // Actual input → mining → inventory mutation.
             input.SetFrame(new InputFrame(Vector2.Zero, false, false, false, false, false, true, false, false, false));
             player.Update(1f / 60f, input, Vector2.Zero);
             Assert.Equal(VoxelWorld.Air, world.GetBlock(0, surfaceY, 0));
-            Assert.Equal(1, player.State.Inventory.Count("core:grass"));
+            Assert.Equal(2, player.State.Inventory.Count("core:grass"));
 
-            // Input → crafting action layer → inventory result.
+            // Actual input → action layer → crafting → inventory mutation.
             input.SetFrame(new InputFrame(Vector2.Zero, false, false, false, false, false, false, false, true, false));
             player.Update(1f / 60f, input, Vector2.Zero);
-            Assert.Equal(0, player.State.Inventory.Count("core:grass"));
+            Assert.Equal(1, player.State.Inventory.Count("core:grass"));
             Assert.Equal(1, player.State.Inventory.Count("core:dirt"));
 
-            // Input → placement → inventory consumed/world mutation.
+            // Actual input → placement → inventory/world mutation.
             input.SetFrame(new InputFrame(Vector2.Zero, false, false, false, false, false, false, true, false, false));
             player.Update(1f / 60f, input, Vector2.Zero);
             Assert.Equal(VoxelWorld.Dirt, world.GetBlock(0, surfaceY, 0));
             Assert.Equal(0, player.State.Inventory.Count("core:dirt"));
 
-            // EntityRuntime is part of the same playable simulation boundary.
+            // EntityRuntime is inside the same simulation boundary.
             entities.Tick(new EntityTickContext(1, 1f / 60f));
             Assert.Equal(1, entity.TickCount);
 
-            // Persist the actual runtime entity set and modified world.
-            WorldPersistence.Save(world, path, entities.Snapshot());
+            // Persist actual world + entity runtime + PlayerState.
+            WorldPersistence.Save(world, path, entities.Snapshot(), player.State);
             var loaded = WorldPersistence.LoadState(path, renderDistance: 1);
             Assert.Equal(world.Seed, loaded.World.Seed);
             Assert.Equal(VoxelWorld.Dirt, loaded.World.GetBlock(0, surfaceY, 0));
+            Assert.NotNull(loaded.Player);
+            Assert.Equal(player.State.Id, loaded.Player!.Id);
+            Assert.Equal("P0-E2E", loaded.Player.Name);
+            Assert.Equal(17.5f, loaded.Player.Health);
+
+            var restoredPlayer = PlayerPersistence.Restore(loaded.Player);
+            Assert.Equal(player.State.Id, restoredPlayer.Id);
+            Assert.Equal(player.State.Name, restoredPlayer.Name);
+            Assert.Equal(player.State.Health, restoredPlayer.Health);
+            Assert.Equal(1, restoredPlayer.Inventory.Count("core:grass"));
+            Assert.Equal(0, restoredPlayer.Inventory.Count("core:dirt"));
 
             var snapshots = EntityPersistence.DeserializeEntities(JsonSerializer.Serialize(loaded.Entities));
             var rehydrated = EntityRehydrator.RehydrateAll(
