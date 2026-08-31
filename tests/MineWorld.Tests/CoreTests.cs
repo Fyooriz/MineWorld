@@ -1,3 +1,4 @@
+using MineWorld.Core.Entities;
 using MineWorld.Core.Inventory;
 using MineWorld.Core.World;
 
@@ -43,5 +44,50 @@ public sealed class CoreTests
         Assert.True(inventory.TryAdd(new ItemStack("core:dirt", 2)));
         Assert.True(inventory.TryRemove("core:dirt", 5));
         Assert.Equal(5, inventory.GetSlot(0).Count);
+    }
+
+    [Fact]
+    public void EntityRuntimeOwnsAndTicksLiveEntities()
+    {
+        var runtime = new EntityRuntime();
+        var entity = new TestEntity(new EntityId("test:entity"));
+
+        runtime.Add(entity);
+
+        Assert.Equal(1, runtime.Count);
+        Assert.True(runtime.TryGet(entity.Id, out var active));
+        Assert.Same(entity, active);
+
+        runtime.Tick(new EntityTickContext(42, 1.0 / 60.0));
+
+        Assert.Equal(1, entity.TickCount);
+        Assert.Equal(42, entity.LastContext.Tick);
+    }
+
+    [Fact]
+    public void EntityRuntimeRejectsDuplicateIdsAndSupportsRemoval()
+    {
+        var runtime = new EntityRuntime();
+        var first = new TestEntity(new EntityId("test:duplicate"));
+        var second = new TestEntity(new EntityId("test:duplicate"));
+
+        runtime.Add(first);
+
+        Assert.Throws<InvalidOperationException>(() => runtime.Add(second));
+        Assert.True(runtime.Remove(first.Id));
+        Assert.False(runtime.Remove(first.Id));
+        Assert.Equal(0, runtime.Count);
+    }
+
+    private sealed class TestEntity(EntityId id) : EntityBase(id, EntityKind.Passive, new EntityPosition(1, 2, 3))
+    {
+        public int TickCount { get; private set; }
+        public EntityTickContext LastContext { get; private set; } = new(0, 0);
+
+        public override void Tick(EntityTickContext context)
+        {
+            TickCount++;
+            LastContext = context;
+        }
     }
 }
