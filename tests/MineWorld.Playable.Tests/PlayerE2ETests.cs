@@ -1,6 +1,7 @@
 using System.Numerics;
 using MineWorld.Core.Crafting;
 using MineWorld.Core.Entities;
+using MineWorld.Core.Inventory;
 using MineWorld.Playable;
 using Raylib_cs;
 
