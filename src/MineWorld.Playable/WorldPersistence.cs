@@ -75,7 +75,7 @@ internal static class WorldPersistence
         var data = JsonSerializer.Deserialize<WorldSaveData>(json)
             ?? throw new InvalidDataException("MineWorld save file is empty or invalid.");
 
-        ValidateAndNormalize(data);
+        Validate(data);
 
         var world = new VoxelWorld(data.Seed, renderDistance);
         foreach (var block in data.Blocks)
@@ -85,7 +85,7 @@ internal static class WorldPersistence
         return new LoadedWorldState(world, entities, data.Player);
     }
 
-    private static void ValidateAndNormalize(WorldSaveData data)
+    private static void Validate(WorldSaveData data)
     {
         if (data.SaveVersion is not (LegacySaveVersion or CurrentSaveVersion))
             throw new InvalidDataException($"Unsupported MineWorld save version: {data.SaveVersion}.");
@@ -93,13 +93,10 @@ internal static class WorldPersistence
         if (data.Blocks is null)
             throw new InvalidDataException("MineWorld save is missing its block list.");
 
-        if (data.Entities is null)
-            data.Entities = [];
-
         if (data.SaveVersion == LegacySaveVersion)
         {
-            // v0 was the pre-schema prototype format. It is accepted as a read-only migration path.
-            data.SaveVersion = CurrentSaveVersion;
+            // v0 was the pre-schema prototype format. It remains readable as a compatibility path.
+            return;
         }
     }
 }
