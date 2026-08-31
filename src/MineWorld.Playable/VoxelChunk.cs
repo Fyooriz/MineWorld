@@ -1,45 +1,52 @@
+using MineWorld.Core.World;
+
 namespace MineWorld.Playable;
 
+/// <summary>Presentation adapter over the canonical Core chunk. No voxel storage is duplicated here.</summary>
 internal sealed class VoxelChunk
 {
-    public const int Size = 16;
-    public const int SectionCount = 4;
+    public const int Size = Chunk.Size;
+    public const int SectionCount = Chunk.Height / ChunkSection.Size;
     public const int MinY = 0;
-    public const int MaxYExclusive = SectionCount * ChunkSection.Size;
+    public const int MaxYExclusive = Chunk.Height;
 
-    private readonly ChunkSection[] _sections = Enumerable.Range(0, SectionCount)
-        .Select(static _ => new ChunkSection())
-        .ToArray();
+    private readonly MineWorld.Core.World.Chunk _coreChunk;
 
-    public VoxelChunk(int chunkX, int chunkZ)
+    public VoxelChunk(MineWorld.Core.World.Chunk coreChunk)
     {
-        ChunkX = chunkX;
-        ChunkZ = chunkZ;
+        _coreChunk = coreChunk ?? throw new ArgumentNullException(nameof(coreChunk));
+        ChunkX = coreChunk.Coordinate.X;
+        ChunkZ = coreChunk.Coordinate.Z;
     }
 
     public int ChunkX { get; }
     public int ChunkZ { get; }
+    public MineWorld.Core.World.Chunk CoreChunk => _coreChunk;
 
     public byte GetBlock(int localX, int y, int localZ)
     {
         Validate(localX, y, localZ);
-        return _sections[y / ChunkSection.Size].Get(
-            localX,
-            y % ChunkSection.Size,
-            localZ);
+        return checked((byte)_coreChunk.GetBlock(localX, y, localZ).Value);
     }
 
     public void SetBlock(int localX, int y, int localZ, byte block)
     {
         Validate(localX, y, localZ);
-        _sections[y / ChunkSection.Size].Set(
-            localX,
-            y % ChunkSection.Size,
-            localZ,
-            block);
+        _coreChunk.SetBlock(localX, y, localZ, new BlockId(block));
     }
 
-    public bool IsEmpty => _sections.All(static section => section.IsEmpty);
+    public bool IsEmpty
+    {
+        get
+        {
+            for (var y = 0; y < MaxYExclusive; y++)
+            for (var z = 0; z < Size; z++)
+            for (var x = 0; x < Size; x++)
+                if (_coreChunk.GetBlock(x, y, z) != BlockId.Air)
+                    return false;
+            return true;
+        }
+    }
 
     private static void Validate(int x, int y, int z)
     {

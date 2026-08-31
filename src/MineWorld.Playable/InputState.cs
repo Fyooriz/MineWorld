@@ -1,7 +1,8 @@
-using Raylib_cs;
-using System.Numerics;
-
 namespace MineWorld.Playable;
+
+using System.Numerics;
+using MineWorld.Core.World;
+using Raylib_cs;
 
 /// <summary>Frame-local input snapshot. Gameplay reads this instead of querying the window directly.</summary>
 internal sealed class InputState
@@ -33,8 +34,8 @@ internal sealed class InputState
 
         SetFrame(frame);
 
-        if (IsRuntimeE2E && (frame.CraftPressed || frame.SavePressed))
-            Console.WriteLine($"REAL_INPUT_OBSERVED: craft={frame.CraftPressed} save={frame.SavePressed}");
+        if (IsRuntimeE2E && (Raylib.IsKeyDown(KeyboardKey.C) || frame.CraftPressed || frame.SavePressed))
+            Console.WriteLine($"REAL_INPUT_OBSERVED: craft={frame.CraftPressed} craft_down={Raylib.IsKeyDown(KeyboardKey.C)} save={frame.SavePressed}");
     }
 
     internal void SetFrame(InputFrame frame)

@@ -57,7 +57,9 @@ jobs:
               exit 4
             fi
 
-            xdotool key --window "$wid" c
+            xdotool keydown --window "$wid" --clearmodifiers c
+            sleep 0.35
+            xdotool keyup --window "$wid" --clearmodifiers c
             craft_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $craft_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
@@ -80,10 +82,12 @@ jobs:
               exit 8
             fi
 
-            xdotool key --window "$wid" F5
+            xdotool keydown --window "$wid" --clearmodifiers F5
+            sleep 0.35
+            xdotool keyup --window "$wid" --clearmodifiers F5
             save_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $save_deadline ]; do
-              if grep -q "REAL_INPUT_OBSERVED: craft=true save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null || grep -q "REAL_INPUT_OBSERVED: craft=false save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+              if grep -q "REAL_INPUT_OBSERVED:.*save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
                 echo "REAL_INPUT_E2E: save input observed"
                 break
               fi
