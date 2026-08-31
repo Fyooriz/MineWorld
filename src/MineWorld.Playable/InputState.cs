@@ -19,7 +19,7 @@ internal sealed class InputState
 
     public void Poll()
     {
-        SetFrame(new InputFrame(
+        var frame = new InputFrame(
             Raylib.GetMouseDelta(),
             Raylib.IsKeyDown(KeyboardKey.W),
             Raylib.IsKeyDown(KeyboardKey.S),
@@ -29,7 +29,12 @@ internal sealed class InputState
             Raylib.IsMouseButtonPressed(MouseButton.Left),
             Raylib.IsMouseButtonPressed(MouseButton.Right),
             Raylib.IsKeyPressed(KeyboardKey.C),
-            Raylib.IsKeyPressed(KeyboardKey.F5)));
+            Raylib.IsKeyPressed(KeyboardKey.F5));
+
+        SetFrame(frame);
+
+        if (IsRuntimeE2E && (frame.CraftPressed || frame.SavePressed))
+            Console.WriteLine($"REAL_INPUT_OBSERVED: craft={frame.CraftPressed} save={frame.SavePressed}");
     }
 
     internal void SetFrame(InputFrame frame)
@@ -52,6 +57,9 @@ internal sealed class InputState
         MouseDelta = Vector2.Zero;
         return delta;
     }
+
+    private static bool IsRuntimeE2E
+        => string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_E2E"), "1", StringComparison.Ordinal);
 }
 
 internal readonly record struct InputFrame(
