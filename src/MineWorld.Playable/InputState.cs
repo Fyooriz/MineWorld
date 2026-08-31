@@ -18,15 +18,29 @@ internal sealed class InputState
 
     public void Poll()
     {
-        MouseDelta = Raylib.GetMouseDelta();
-        Forward = Raylib.IsKeyDown(KeyboardKey.W);
-        Backward = Raylib.IsKeyDown(KeyboardKey.S);
-        Left = Raylib.IsKeyDown(KeyboardKey.A);
-        Right = Raylib.IsKeyDown(KeyboardKey.D);
-        JumpPressed = Raylib.IsKeyPressed(KeyboardKey.Space);
-        MinePressed = Raylib.IsMouseButtonPressed(MouseButton.Left);
-        PlacePressed = Raylib.IsMouseButtonPressed(MouseButton.Right);
-        SavePressed = Raylib.IsKeyPressed(KeyboardKey.F5);
+        SetFrame(new InputFrame(
+            Raylib.GetMouseDelta(),
+            Raylib.IsKeyDown(KeyboardKey.W),
+            Raylib.IsKeyDown(KeyboardKey.S),
+            Raylib.IsKeyDown(KeyboardKey.A),
+            Raylib.IsKeyDown(KeyboardKey.D),
+            Raylib.IsKeyPressed(KeyboardKey.Space),
+            Raylib.IsMouseButtonPressed(MouseButton.Left),
+            Raylib.IsMouseButtonPressed(MouseButton.Right),
+            Raylib.IsKeyPressed(KeyboardKey.F5)));
+    }
+
+    internal void SetFrame(InputFrame frame)
+    {
+        MouseDelta = frame.MouseDelta;
+        Forward = frame.Forward;
+        Backward = frame.Backward;
+        Left = frame.Left;
+        Right = frame.Right;
+        JumpPressed = frame.JumpPressed;
+        MinePressed = frame.MinePressed;
+        PlacePressed = frame.PlacePressed;
+        SavePressed = frame.SavePressed;
     }
 
     public Vector2 ConsumeMouseDelta()
@@ -35,4 +49,18 @@ internal sealed class InputState
         MouseDelta = Vector2.Zero;
         return delta;
     }
+}
+
+internal readonly record struct InputFrame(
+    Vector2 MouseDelta,
+    bool Forward,
+    bool Backward,
+    bool Left,
+    bool Right,
+    bool JumpPressed,
+    bool MinePressed,
+    bool PlacePressed,
+    bool SavePressed)
+{
+    public static InputFrame Empty => new(Vector2.Zero, false, false, false, false, false, false, false, false);
 }
