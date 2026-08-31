@@ -53,7 +53,7 @@ internal sealed class GameLoop
             _world.StreamAround(_player.Position.X, _player.Position.Z);
 
             if (_input.SavePressed)
-                WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot(), _player.State);
+                SaveCurrentState();
 
             _renderer.BeginFrame(_player.Position, _player.Position + _player.LookDirection);
             _renderer.RenderWorld(_world);
@@ -62,8 +62,16 @@ internal sealed class GameLoop
             frames++;
         }
 
-        WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot(), _player.State);
+        SaveCurrentState();
     }
+
+    private void SaveCurrentState()
+        => WorldPersistence.Save(
+            _world,
+            _savePath,
+            _entityRuntime.Snapshot(),
+            _player.State,
+            _player.Position);
 
     internal void StepSimulation(float dt, Vector2 mouseDelta)
     {

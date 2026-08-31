@@ -1,7 +1,7 @@
 # MineWorld Chunk Runtime Specification
 
 ## Status
-PARTIAL — deterministic data contract; executable chunk runtime comes next.
+P1 — canonical lifecycle and deterministic data contract.
 
 ## Goals
 
@@ -17,9 +17,15 @@ PARTIAL — deterministic data contract; executable chunk runtime comes next.
 
 The same seed, dimension, generator version, and chunk coordinates must produce the same generated baseline.
 
-## Lifecycle
+## Canonical lifecycle
 
-`UNLOADED → GENERATING → GENERATED → LOADED → DIRTY → SAVING → LOADED → UNLOADED`
+The executable runtime is authoritative for lifecycle state names:
+
+`UNLOADED → REQUESTED → GENERATING → LOADED → DIRTY → MESHING → READY → UNLOADING → UNLOADED`
+
+Allowed transitions are explicit and invalid transitions must be rejected. Cancellation/invalidation is represented by transitions back toward `UNLOADING` or by re-entering `DIRTY`; a stale asynchronous result must never become authoritative after ownership has changed.
+
+Generation, meshing, and persistence are separate concerns. `READY` describes presentation readiness; it does not transfer ownership away from the authoritative chunk state.
 
 Generation and persistence must be cancellable where the runtime supports it. A failed generation/save operation must not silently mark the chunk as valid.
 
@@ -47,3 +53,7 @@ The world streamer decides which chunks are needed from player/view distance and
 ## Persistence
 
 Saved chunk data must include a format version. Unknown future fields should be safely ignored where possible; incompatible versions must fail explicitly rather than corrupting state.
+
+## Determinism
+
+Scheduling order and worker completion order may vary. They must not change generated chunk contents or authoritative simulation results. Re-evaluation of the same deterministic inputs must produce the same baseline data, including at chunk and coordinate boundaries.

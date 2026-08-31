@@ -2,13 +2,10 @@ using System.Numerics;
 
 namespace MineWorld.Playable;
 
-/// <summary>
-/// Small, deterministic streaming scheduler. It separates the desired chunk set from
-/// generation work so world generation can later move to worker threads without changing
-/// the game loop contract.
-/// </summary>
+/// <summary>Determines the bounded set of chunks relevant to the current player position.</summary>
 internal sealed class ChunkStreamingScheduler
 {
+    private const int ChunkSize = 16;
     private readonly int _viewDistance;
     private readonly Queue<ChunkKey> _pending = new();
     private readonly HashSet<ChunkKey> _queued = new();
@@ -25,20 +22,16 @@ internal sealed class ChunkStreamingScheduler
 
     public void Rebuild(Vector3 playerPosition, ISet<ChunkKey> loaded)
     {
-        var center = new ChunkKey(
-            (int)MathF.Floor(playerPosition.X / 16f),
-            (int)MathF.Floor(playerPosition.Z / 16f));
+        ArgumentNullException.ThrowIfNull(loaded);
 
+        var center = new ChunkKey(FloorDiv((int)MathF.Floor(playerPosition.X), ChunkSize), FloorDiv((int)MathF.Floor(playerPosition.Z), ChunkSize));
         for (var dz = -_viewDistance; dz <= _viewDistance; dz++)
+        for (var dx = -_viewDistance; dx <= _viewDistance; dx++)
         {
-            for (var dx = -_viewDistance; dx <= _viewDistance; dx++)
-            {
-                var key = new ChunkKey(center.X + dx, center.Z + dz);
-                if (loaded.Contains(key) || !_queued.Add(key))
-                    continue;
-
-                _pending.Enqueue(key);
-            }
+            var key = new ChunkKey(center.X + dx, center.Z + dz);
+            if (loaded.Contains(key) || !_queued.Add(key))
+                continue;
+            _pending.Enqueue(key);
         }
     }
 
@@ -51,7 +44,13 @@ internal sealed class ChunkStreamingScheduler
         }
 
         key = _pending.Dequeue();
-        _queued.Remove(key);
         return true;
+    }
+
+    private static int FloorDiv(int value, int divisor)
+    {
+        var quotient = value / divisor;
+        var remainder = value % divisor;
+        return remainder >= 0 ? quotient : quotient - 1;
     }
 }

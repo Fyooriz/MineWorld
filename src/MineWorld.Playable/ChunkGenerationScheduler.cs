@@ -3,13 +3,13 @@ using System.Numerics;
 
 namespace MineWorld.Playable;
 
-internal readonly record struct GeneratedChunk(ChunkKey Key, ChunkMesh Mesh);
+internal readonly record struct GeneratedChunk(ChunkKey Key, ChunkMeshData Mesh);
 
-/// <summary>Background CPU generation/meshing pipeline. GPU resources are renderer-owned.</summary>
+/// <summary>Background CPU generation/meshing pipeline. GPU resources remain renderer-owned.</summary>
 internal sealed class ChunkGenerationScheduler : IDisposable
 {
     private readonly ChunkStreamingScheduler _streaming;
-    private readonly Func<ChunkKey, ChunkMesh> _generate;
+    private readonly Func<ChunkKey, CancellationToken, ChunkMeshData> _generate;
     private readonly ConcurrentQueue<ChunkKey> _work = new();
     private readonly ConcurrentQueue<GeneratedChunk> _completed = new();
     private readonly HashSet<ChunkKey> _inFlight = new();
@@ -17,12 +17,18 @@ internal sealed class ChunkGenerationScheduler : IDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private readonly List<Task> _workers = new();
 
-    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, ChunkMesh> generate, int workerCount = 1)
+    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, ChunkMeshData> generate, int workerCount = 1)
+        : this(viewDistance, (key, _) => generate(key), workerCount)
+    {
+    }
+
+    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, CancellationToken, ChunkMeshData> generate, int workerCount = 1)
     {
         _streaming = new ChunkStreamingScheduler(viewDistance);
         _generate = generate ?? throw new ArgumentNullException(nameof(generate));
         if (workerCount < 1) throw new ArgumentOutOfRangeException(nameof(workerCount));
-        for (var i = 0; i < workerCount; i++) _workers.Add(Task.Run(WorkerLoop));
+        for (var i = 0; i < workerCount; i++)
+            _workers.Add(Task.Run(WorkerLoop));
     }
 
     public int PendingCount => _work.Count;
@@ -35,13 +41,23 @@ internal sealed class ChunkGenerationScheduler : IDisposable
         {
             lock (_gate)
             {
-                if (!_inFlight.Add(key)) continue;
+                if (!_inFlight.Add(key))
+                    continue;
             }
             _work.Enqueue(key);
         }
     }
 
-    public bool TryTakeCompleted(out GeneratedChunk chunk) => _completed.TryDequeue(out chunk);
+    public bool TryTakeCompleted(out GeneratedChunk chunk)
+    {
+        if (!_completed.TryDequeue(out chunk))
+            return false;
+
+        lock (_gate)
+            _inFlight.Remove(chunk.Key);
+
+        return true;
+    }
 
     private async Task WorkerLoop()
     {
@@ -54,8 +70,27 @@ internal sealed class ChunkGenerationScheduler : IDisposable
                 continue;
             }
 
-            try { _completed.Enqueue(new GeneratedChunk(key, _generate(key))); }
-            finally { lock (_gate) _inFlight.Remove(key); }
+            try
+            {
+                var generated = _generate(key, _shutdown.Token);
+                if (!_shutdown.IsCancellationRequested)
+                    _completed.Enqueue(new GeneratedChunk(key, generated));
+            }
+            catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+            {
+            }
+            catch
+            {
+                lock (_gate) _inFlight.Remove(key);
+                throw;
+            }
+            finally
+            {
+                if (_shutdown.IsCancellationRequested)
+                {
+                    lock (_gate) _inFlight.Remove(key);
+                }
+            }
         }
     }
 
