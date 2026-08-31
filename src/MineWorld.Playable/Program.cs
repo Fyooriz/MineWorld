@@ -11,13 +11,17 @@ internal static class Program
     {
         var runtimeE2E = string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_E2E"), "1", StringComparison.Ordinal);
         var savePath = runtimeE2E ? "saves/runtime-e2e.json" : SavePath;
-        var world = WorldPersistence.Load(savePath, renderDistance: runtimeE2E ? 1 : 3);
-        var state = runtimeE2E ? CreateRuntimeE2EState() : null;
-        var player = new PlayerController(world, state: state, initialLookDirection: System.Numerics.Vector3.UnitZ);
+        var loaded = WorldPersistence.LoadState(savePath, renderDistance: runtimeE2E ? 1 : 3);
+        var state = runtimeE2E
+            ? CreateRuntimeE2EState()
+            : loaded.Player is null
+                ? new PlayerState()
+                : PlayerPersistence.Restore(loaded.Player);
+        var player = new PlayerController(loaded.World, state: state, initialLookDirection: System.Numerics.Vector3.UnitZ);
         var input = new InputState();
 
         using IRenderer renderer = new RaylibRenderer(1280, 720, "MineWorld P0");
-        var loop = new GameLoop(renderer, input, world, player, savePath);
+        var loop = new GameLoop(renderer, input, loaded.World, player, savePath);
         var bootTest = string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_BOOT"), "1", StringComparison.Ordinal);
         int? maxFrames = null;
         if (runtimeE2E || bootTest)
