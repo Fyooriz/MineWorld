@@ -6,19 +6,20 @@ namespace MineWorld.Playable.Tests;
 public sealed class P1WorldChunkTests
 {
     [Theory]
-    [InlineData(0, 0, 0, 0, 0)]
-    [InlineData(15, 15, 0, 0, 15)]
-    [InlineData(16, 16, 1, 1, 0)]
-    [InlineData(-1, -1, -1, -1, 15)]
-    [InlineData(-16, -16, -1, -1, 0)]
-    [InlineData(-17, -17, -2, -2, 15)]
-    [InlineData(-33, 7, -3, 0, 15)]
+    [InlineData(0, 0, 0, 0, 0, 0)]
+    [InlineData(15, 15, 0, 0, 15, 15)]
+    [InlineData(16, 16, 1, 1, 0, 0)]
+    [InlineData(-1, -1, -1, -1, 15, 15)]
+    [InlineData(-16, -16, -1, -1, 0, 0)]
+    [InlineData(-17, -17, -2, -2, 15, 15)]
+    [InlineData(-33, 7, -3, 0, 15, 7)]
     public void WorldToChunkUsesFloorSemantics(
         int worldX,
         int worldZ,
         int expectedChunkX,
         int expectedChunkZ,
-        int expectedLocal)
+        int expectedLocalX,
+        int expectedLocalZ)
     {
         var chunk = HorizontalChunkCoordinate.FromWorld(worldX, worldZ);
 
@@ -26,8 +27,8 @@ public sealed class P1WorldChunkTests
         Assert.Equal(expectedChunkZ, chunk.Z);
 
         var local = chunk.ToLocal(worldX, worldZ);
-        Assert.Equal(expectedLocal, local.X);
-        Assert.Equal(expectedLocal, local.Z);
+        Assert.Equal(expectedLocalX, local.X);
+        Assert.Equal(expectedLocalZ, local.Z);
     }
 
     [Fact]
