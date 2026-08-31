@@ -10,6 +10,8 @@ public sealed class EntityRuntime
 
     public int Count => _entities.Count;
 
+    public IReadOnlyList<IEntity> Snapshot() => _entities.Values.ToArray();
+
     public void Add(IEntity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -27,7 +29,7 @@ public sealed class EntityRuntime
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        // Snapshot the collection so an entity can be removed or added by future lifecycle code
+        // Snapshot the collection so a future lifecycle operation can add/remove entities safely
         // without invalidating the current simulation iteration.
         foreach (var entity in _entities.Values.ToArray())
             entity.Tick(context);
