@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Text;
 using System.Text.Json;
 using MineWorld.Core.Entities;
 using MineWorld.Core.Player;
@@ -17,6 +18,7 @@ internal static class WorldPersistence
 {
     public const int CurrentSaveVersion = 1;
     private const int LegacySaveVersion = 0;
+    private const int WriteBufferSize = 64 * 1024;
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
 
     public static void Save(VoxelWorld world, string path)
@@ -59,7 +61,25 @@ internal static class WorldPersistence
         var tempPath = $"{fullPath}.{Guid.NewGuid():N}.tmp";
         try
         {
-            File.WriteAllText(tempPath, JsonSerializer.Serialize(data, Options));
+            var json = JsonSerializer.Serialize(data, Options);
+            using var stream = new FileStream(
+                tempPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                WriteBufferSize,
+                FileOptions.WriteThrough);
+            using (var writer = new StreamWriter(
+                       stream,
+                       new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                       WriteBufferSize,
+                       leaveOpen: true))
+            {
+                writer.Write(json);
+                writer.Flush();
+            }
+
+            stream.Flush(flushToDisk: true);
             File.Move(tempPath, fullPath, overwrite: true);
         }
         finally
