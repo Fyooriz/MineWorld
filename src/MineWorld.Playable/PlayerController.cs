@@ -26,9 +26,16 @@ internal sealed class PlayerController
         _world = world;
         State = state ?? new PlayerState();
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
-        LookDirection = initialLookDirection is { } direction && direction.LengthSquared() > 0.0001f
-            ? Vector3.Normalize(direction)
+
+        var direction = initialLookDirection is { } initial && initial.LengthSquared() > 0.0001f
+            ? Vector3.Normalize(initial)
             : Vector3.UnitZ;
+        _yaw = MathF.Atan2(direction.X, direction.Z);
+        _pitch = Math.Clamp(MathF.Asin(Math.Clamp(direction.Y, -1f, 1f)), -1.5f, 1.5f);
+        LookDirection = Vector3.Normalize(new Vector3(
+            MathF.Cos(_pitch) * MathF.Sin(_yaw),
+            MathF.Sin(_pitch),
+            MathF.Cos(_pitch) * MathF.Cos(_yaw)));
     }
 
     public void Update(float dt, InputState input, Vector2 mouseDelta)
