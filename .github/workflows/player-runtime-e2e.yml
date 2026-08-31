@@ -27,33 +27,57 @@ jobs:
       - name: Real input E2E under focused virtual display
         shell: bash
         run: |
-          rm -f saves/runtime-e2e.json /tmp/mineworld-runtime-e2e.log
+          rm -f saves/runtime-e2e.json /tmp/mineworld-runtime-e2e.log /tmp/mineworld-runtime-e2e.ready
           mkdir -p saves
           set +e
           xvfb-run -a bash -c '
             openbox --replace >/tmp/openbox-runtime-e2e.log 2>&1 &
             wm=$!
             sleep 1
-            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=1200 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
+            MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=3000 MINEWORLD_RUNTIME_E2E_READY_FILE=saves/runtime-e2e.ready dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
             app=$!
+            for i in $(seq 1 60); do
+              if [ -f saves/runtime-e2e.ready ]; then break; fi
+              if ! kill -0 "$app" 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime exited before ready signal"
+                wait "$app" 2>/dev/null
+                kill "$wm" 2>/dev/null
+                exit 5
+              fi
+              sleep 0.25
+            done
+            if [ ! -f saves/runtime-e2e.ready ]; then
+              echo "REAL_INPUT_E2E: runtime ready timeout"
+              tail -n 60 /tmp/mineworld-runtime-e2e.log 2>/dev/null || true
+              kill "$app" 2>/dev/null
+              kill "$wm" 2>/dev/null
+              exit 5
+            fi
+
+            wid=""
             for i in $(seq 1 40); do
               wid=$(xdotool search --name "MineWorld P0" 2>/dev/null | head -n 1)
               if [ -n "$wid" ]; then break; fi
               sleep 0.25
             done
-            if [ -z "$wid" ]; then echo "REAL_INPUT_E2E: window not found"; kill "$app" 2>/dev/null; kill "$wm" 2>/dev/null; exit 2; fi
+            if [ -z "$wid" ]; then
+              echo "REAL_INPUT_E2E: window not found"
+              kill "$app" 2>/dev/null
+              kill "$wm" 2>/dev/null
+              exit 2
+            fi
 
             xdotool windowraise "$wid" 2>/dev/null || true
             xdotool windowactivate --sync "$wid" 2>/dev/null || true
             xdotool windowfocus --sync "$wid" 2>/dev/null || true
-            sleep 1
+            sleep 0.5
             active=$(xdotool getactivewindow 2>/dev/null || true)
             echo "REAL_INPUT_E2E: window=$wid active=$active"
-            echo "REAL_INPUT_E2E: focus verification is informational; targeted input is sent directly to the MineWorld window"
+            echo "REAL_INPUT_E2E: focus verification is informational; runtime-ready barrier is authoritative"
 
-            xdotool keydown --window "$wid" --clearmodifiers c
-            sleep 0.35
-            xdotool keyup --window "$wid" --clearmodifiers c
+            xdotool keydown --clearmodifiers c
+            sleep 0.5
+            xdotool keyup --clearmodifiers c
             craft_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $craft_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
@@ -76,9 +100,9 @@ jobs:
               exit 8
             fi
 
-            xdotool keydown --window "$wid" --clearmodifiers F5
-            sleep 0.35
-            xdotool keyup --window "$wid" --clearmodifiers F5
+            xdotool keydown --clearmodifiers F5
+            sleep 0.5
+            xdotool keyup --clearmodifiers F5
             save_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $save_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED:.*save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
