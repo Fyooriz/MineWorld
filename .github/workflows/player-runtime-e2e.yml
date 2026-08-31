@@ -27,7 +27,7 @@ jobs:
       - name: Real input E2E under focused virtual display
         shell: bash
         run: |
-          rm -f saves/runtime-e2e.json /tmp/mineworld-runtime-e2e.log
+          rm -f saves/runtime-e2e.json /tmp/mineworld-runtime-e2e.log /tmp/openbox-runtime-e2e.log
           mkdir -p saves
           set +e
           xvfb-run -a bash -c '
@@ -37,7 +37,7 @@ jobs:
             MINEWORLD_RUNTIME_E2E=1 MINEWORLD_RUNTIME_E2E_FRAMES=1200 dotnet run --project src/MineWorld.Playable/MineWorld.Playable.csproj --configuration Release --no-build > /tmp/mineworld-runtime-e2e.log 2>&1 &
             app=$!
             for i in $(seq 1 40); do
-              wid=$(xdotool search --name "MineWorld P0" 2>/dev/null | head -n 1)
+              wid=$(xdotool search --onlyvisible --name "MineWorld P0" 2>/dev/null | head -n 1)
               if [ -n "$wid" ]; then break; fi
               sleep 0.25
             done
@@ -46,18 +46,22 @@ jobs:
             xdotool windowraise "$wid" 2>/dev/null || true
             xdotool windowactivate --sync "$wid" 2>/dev/null || true
             xdotool windowfocus --sync "$wid" 2>/dev/null || true
+            xdotool mousemove --window "$wid" 640 360 2>/dev/null || true
             sleep 1
             active=$(xdotool getactivewindow 2>/dev/null || true)
-            echo "REAL_INPUT_E2E: window=$wid active=$active"
-            if [ "$active" != "$wid" ]; then
-              echo "REAL_INPUT_E2E: target window is not active"
+            focused=$(xdotool getwindowfocus 2>/dev/null || true)
+            echo "REAL_INPUT_E2E: window=$wid active=$active focused=$focused"
+            if [ "$active" != "$wid" ] || [ "$focused" != "$wid" ]; then
+              echo "REAL_INPUT_E2E: target window is not active/focused"
               cat /tmp/openbox-runtime-e2e.log 2>/dev/null || true
               kill "$app" 2>/dev/null
               kill "$wm" 2>/dev/null
               exit 4
             fi
 
-            xdotool key --window "$wid" c
+            xdotool keydown --window "$wid" c
+            sleep 0.75
+            xdotool keyup --window "$wid" c
             craft_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $craft_deadline ]; do
               if grep -q "REAL_INPUT_OBSERVED: craft=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
@@ -80,10 +84,12 @@ jobs:
               exit 8
             fi
 
-            xdotool key --window "$wid" F5
+            xdotool keydown --window "$wid" F5
+            sleep 0.75
+            xdotool keyup --window "$wid" F5
             save_deadline=$((SECONDS + 8))
             while [ $SECONDS -lt $save_deadline ]; do
-              if grep -q "REAL_INPUT_OBSERVED: craft=true save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null || grep -q "REAL_INPUT_OBSERVED: craft=false save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+              if grep -q "REAL_INPUT_OBSERVED:.*save=true" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
                 echo "REAL_INPUT_E2E: save input observed"
                 break
               fi
