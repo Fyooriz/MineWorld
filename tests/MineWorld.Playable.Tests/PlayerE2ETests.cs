@@ -55,7 +55,6 @@ public sealed class PlayerE2ETests
                 snapshots,
                 saved => new TestEntity(
                     new EntityId(saved.Id),
-                    saved.Kind,
                     new EntityPosition(saved.X, saved.Y, saved.Z)));
 
             var restoredRuntime = new EntityRuntime();
