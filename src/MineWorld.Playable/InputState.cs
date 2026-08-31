@@ -14,6 +14,7 @@ internal sealed class InputState
     public bool JumpPressed { get; private set; }
     public bool MinePressed { get; private set; }
     public bool PlacePressed { get; private set; }
+    public bool CraftPressed { get; private set; }
     public bool SavePressed { get; private set; }
 
     public void Poll()
@@ -27,6 +28,7 @@ internal sealed class InputState
             Raylib.IsKeyPressed(KeyboardKey.Space),
             Raylib.IsMouseButtonPressed(MouseButton.Left),
             Raylib.IsMouseButtonPressed(MouseButton.Right),
+            Raylib.IsKeyPressed(KeyboardKey.C),
             Raylib.IsKeyPressed(KeyboardKey.F5)));
     }
 
@@ -40,6 +42,7 @@ internal sealed class InputState
         JumpPressed = frame.JumpPressed;
         MinePressed = frame.MinePressed;
         PlacePressed = frame.PlacePressed;
+        CraftPressed = frame.CraftPressed;
         SavePressed = frame.SavePressed;
     }
 
@@ -60,7 +63,8 @@ internal readonly record struct InputFrame(
     bool JumpPressed,
     bool MinePressed,
     bool PlacePressed,
+    bool CraftPressed,
     bool SavePressed)
 {
-    public static InputFrame Empty => new(Vector2.Zero, false, false, false, false, false, false, false, false);
+    public static InputFrame Empty => new(Vector2.Zero, false, false, false, false, false, false, false, false, false);
 }
