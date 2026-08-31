@@ -19,7 +19,13 @@ internal static class Program
         using IRenderer renderer = new RaylibRenderer(1280, 720, "MineWorld P0");
         var loop = new GameLoop(renderer, input, world, player, savePath);
         var bootTest = string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_BOOT"), "1", StringComparison.Ordinal);
-        loop.Run(runtimeE2E || bootTest ? 180 : null);
+        int? maxFrames = null;
+        if (runtimeE2E || bootTest)
+        {
+            var configuredFrames = Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_E2E_FRAMES");
+            maxFrames = int.TryParse(configuredFrames, out var parsed) && parsed > 0 ? parsed : 180;
+        }
+        loop.Run(maxFrames);
     }
 
     private static PlayerState CreateRuntimeE2EState()
