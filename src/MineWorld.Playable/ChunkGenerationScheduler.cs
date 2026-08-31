@@ -3,13 +3,13 @@ using System.Numerics;
 
 namespace MineWorld.Playable;
 
-internal readonly record struct GeneratedChunk(ChunkKey Key, ChunkMesh Mesh);
+internal readonly record struct GeneratedChunk(ChunkKey Key, ChunkMeshData Mesh);
 
 /// <summary>Background CPU generation/meshing pipeline. GPU resources remain renderer-owned.</summary>
 internal sealed class ChunkGenerationScheduler : IDisposable
 {
     private readonly ChunkStreamingScheduler _streaming;
-    private readonly Func<ChunkKey, CancellationToken, ChunkMesh> _generate;
+    private readonly Func<ChunkKey, CancellationToken, ChunkMeshData> _generate;
     private readonly ConcurrentQueue<ChunkKey> _work = new();
     private readonly ConcurrentQueue<GeneratedChunk> _completed = new();
     private readonly HashSet<ChunkKey> _inFlight = new();
@@ -17,12 +17,12 @@ internal sealed class ChunkGenerationScheduler : IDisposable
     private readonly CancellationTokenSource _shutdown = new();
     private readonly List<Task> _workers = new();
 
-    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, ChunkMesh> generate, int workerCount = 1)
+    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, ChunkMeshData> generate, int workerCount = 1)
         : this(viewDistance, (key, _) => generate(key), workerCount)
     {
     }
 
-    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, CancellationToken, ChunkMesh> generate, int workerCount = 1)
+    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, CancellationToken, ChunkMeshData> generate, int workerCount = 1)
     {
         _streaming = new ChunkStreamingScheduler(viewDistance);
         _generate = generate ?? throw new ArgumentNullException(nameof(generate));
