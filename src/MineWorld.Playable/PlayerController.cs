@@ -13,7 +13,7 @@ internal sealed class PlayerController
     private const float EyeHeight = 1.7f;
 
     public Vector3 Position { get; private set; }
-    public Vector3 LookDirection { get; private set; } = Vector3.UnitZ;
+    public Vector3 LookDirection { get; private set; }
     public PlayerState State { get; }
 
     private readonly VoxelWorld _world;
@@ -21,11 +21,14 @@ internal sealed class PlayerController
     private float _pitch;
     private float _verticalVelocity;
 
-    public PlayerController(VoxelWorld world, PlayerState? state = null)
+    public PlayerController(VoxelWorld world, PlayerState? state = null, Vector3? initialLookDirection = null)
     {
         _world = world;
         State = state ?? new PlayerState();
         Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+        LookDirection = initialLookDirection is { } direction && direction.LengthSquared() > 0.0001f
+            ? Vector3.Normalize(direction)
+            : Vector3.UnitZ;
     }
 
     public void Update(float dt, InputState input, Vector2 mouseDelta)
