@@ -41,7 +41,16 @@ internal sealed class ChunkGenerationScheduler : IDisposable
         }
     }
 
-    public bool TryTakeCompleted(out GeneratedChunk chunk) => _completed.TryDequeue(out chunk);
+    public bool TryTakeCompleted(out GeneratedChunk chunk)
+    {
+        if (!_completed.TryDequeue(out chunk))
+            return false;
+
+        lock (_gate)
+            _inFlight.Remove(chunk.Key);
+
+        return true;
+    }
 
     private async Task WorkerLoop()
     {
@@ -55,7 +64,11 @@ internal sealed class ChunkGenerationScheduler : IDisposable
             }
 
             try { _completed.Enqueue(new GeneratedChunk(key, _generate(key))); }
-            finally { lock (_gate) _inFlight.Remove(key); }
+            catch
+            {
+                lock (_gate) _inFlight.Remove(key);
+                throw;
+            }
         }
     }
 
