@@ -9,7 +9,7 @@ internal readonly record struct GeneratedChunk(ChunkKey Key, ChunkMesh Mesh);
 internal sealed class ChunkGenerationScheduler : IDisposable
 {
     private readonly ChunkStreamingScheduler _streaming;
-    private readonly Func<ChunkKey, ChunkMesh> _generate;
+    private readonly Func<ChunkKey, CancellationToken, ChunkMesh> _generate;
     private readonly ConcurrentQueue<ChunkKey> _work = new();
     private readonly ConcurrentQueue<GeneratedChunk> _completed = new();
     private readonly HashSet<ChunkKey> _inFlight = new();
@@ -18,6 +18,11 @@ internal sealed class ChunkGenerationScheduler : IDisposable
     private readonly List<Task> _workers = new();
 
     public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, ChunkMesh> generate, int workerCount = 1)
+        : this(viewDistance, (key, _) => generate(key), workerCount)
+    {
+    }
+
+    public ChunkGenerationScheduler(int viewDistance, Func<ChunkKey, CancellationToken, ChunkMesh> generate, int workerCount = 1)
     {
         _streaming = new ChunkStreamingScheduler(viewDistance);
         _generate = generate ?? throw new ArgumentNullException(nameof(generate));
@@ -63,11 +68,26 @@ internal sealed class ChunkGenerationScheduler : IDisposable
                 continue;
             }
 
-            try { _completed.Enqueue(new GeneratedChunk(key, _generate(key))); }
+            try
+            {
+                var generated = _generate(key, _shutdown.Token);
+                if (!_shutdown.IsCancellationRequested)
+                    _completed.Enqueue(new GeneratedChunk(key, generated));
+            }
+            catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
+            {
+            }
             catch
             {
                 lock (_gate) _inFlight.Remove(key);
                 throw;
+            }
+            finally
+            {
+                if (_shutdown.IsCancellationRequested)
+                {
+                    lock (_gate) _inFlight.Remove(key);
+                }
             }
         }
     }
