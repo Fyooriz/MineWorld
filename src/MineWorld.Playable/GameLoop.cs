@@ -48,23 +48,12 @@ internal sealed class GameLoop
             previous = now;
 
             _input.Poll();
-            _fixedAccumulator += dt;
-            var mouseDelta = _input.ConsumeMouseDelta();
-            var firstSimulationStep = true;
-
-            while (_fixedAccumulator >= FixedStepSeconds)
-            {
-                var context = new EntityTickContext(++_simulationTick, FixedStepSeconds);
-                _player.Update(FixedStepSeconds, _input, firstSimulationStep ? mouseDelta : Vector2.Zero);
-                _entityRuntime.Tick(context);
-                firstSimulationStep = false;
-                _fixedAccumulator -= FixedStepSeconds;
-            }
+            StepSimulation(dt, _input.ConsumeMouseDelta());
 
             _world.StreamAround(_player.Position.X, _player.Position.Z);
 
             if (_input.SavePressed)
-                WorldPersistence.Save(_world, _savePath, GetEntities());
+                WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot());
 
             _renderer.BeginFrame(_player.Position, _player.Position + _player.LookDirection);
             _renderer.RenderWorld(_world);
@@ -73,25 +62,24 @@ internal sealed class GameLoop
             frames++;
         }
 
-        WorldPersistence.Save(_world, _savePath, GetEntities());
+        WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot());
     }
 
-    private IReadOnlyList<IEntity> GetEntities()
+    internal void StepSimulation(float dt, Vector2 mouseDelta)
     {
-        var entities = new List<IEntity>(_entityRuntime.Count);
-        foreach (var id in GetActiveEntityIds())
+        if (dt < 0f)
+            throw new ArgumentOutOfRangeException(nameof(dt));
+
+        _fixedAccumulator += MathF.Min(dt, MaxDeltaSeconds);
+        var firstSimulationStep = true;
+
+        while (_fixedAccumulator >= FixedStepSeconds)
         {
-            if (_entityRuntime.TryGet(id, out var entity))
-                entities.Add(entity);
+            var context = new EntityTickContext(++_simulationTick, FixedStepSeconds);
+            _player.Update(FixedStepSeconds, _input, firstSimulationStep ? mouseDelta : Vector2.Zero);
+            _entityRuntime.Tick(context);
+            firstSimulationStep = false;
+            _fixedAccumulator -= FixedStepSeconds;
         }
-
-        return entities;
     }
-
-    private IEnumerable<EntityId> GetActiveEntityIds()
-    {
-        return _activeIdsCache.ToArray();
-    }
-
-    private readonly List<EntityId> _activeIdsCache = [];
 }
