@@ -51,7 +51,7 @@ jobs:
             wait "$app"
           ' &
           e2e_pid=$!
-          timeout --signal=TERM --kill-after=5s 60s bash -c "wait $e2e_pid"
+          wait "$e2e_pid"
           code=$?
           if [ "$code" -ne 0 ]; then
             echo "REAL_INPUT_E2E: runtime exited with code $code"
