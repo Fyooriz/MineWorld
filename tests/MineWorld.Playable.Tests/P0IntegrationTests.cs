@@ -69,6 +69,48 @@ public sealed class P0IntegrationTests
     }
 
     [Fact]
+    public void EntitySaveReloadRehydratesLiveEntityAndTicks()
+    {
+        var original = new TestEntity(
+            new EntityId("test:rehydrated"),
+            EntityKind.Passive,
+            new EntityPosition(4, 5, 6));
+        var snapshot = EntityPersistence.Capture(original);
+
+        var rehydrated = EntityRehydrator.Rehydrate(
+            snapshot,
+            saved => new TestEntity(
+                new EntityId(saved.Id),
+                saved.Kind,
+                new EntityPosition(saved.X, saved.Y, saved.Z)));
+
+        Assert.NotSame(original, rehydrated);
+        Assert.Equal(original.Id, rehydrated.Id);
+        Assert.Equal(original.Kind, rehydrated.Kind);
+        Assert.Equal(original.Position, rehydrated.Position);
+
+        var live = Assert.IsType<TestEntity>(rehydrated);
+        live.Tick(new EntityTickContext(Tick: 99, DeltaSeconds: 0.05));
+        Assert.Equal(1, live.TickCount);
+        Assert.Equal(99, live.LastTick);
+        Assert.Equal(0.05, live.LastDeltaSeconds, precision: 12);
+    }
+
+    [Fact]
+    public void RehydrationRejectsDuplicateEntityIds()
+    {
+        var snapshot = new SavedEntity("test:duplicate", EntityKind.Passive, 1, 2, 3);
+        var snapshots = new[] { snapshot, snapshot };
+
+        Assert.Throws<InvalidDataException>(() => EntityRehydrator.RehydrateAll(
+            snapshots,
+            saved => new TestEntity(
+                new EntityId(saved.Id),
+                saved.Kind,
+                new EntityPosition(saved.X, saved.Y, saved.Z))));
+    }
+
+    [Fact]
     public void MiningWithFullInventoryLeavesWorldUnchanged()
     {
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
