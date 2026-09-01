@@ -25,12 +25,19 @@ internal sealed class PlayerController
         VoxelWorld world,
         PlayerState? state = null,
         Vector3? initialLookDirection = null,
-        PlayerActionLayer? actions = null)
+        PlayerActionLayer? actions = null,
+        Vector3? initialPosition = null)
     {
+        ArgumentNullException.ThrowIfNull(world);
         _world = world;
         State = state ?? new PlayerState();
         _actions = actions ?? new PlayerActionLayer();
-        Position = new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+        Position = initialPosition is { } position
+            ? position
+            : new Vector3(0.5f, world.GetSurfaceHeight(0, 0) + 2f, 0.5f);
+
+        if (!float.IsFinite(Position.X) || !float.IsFinite(Position.Y) || !float.IsFinite(Position.Z))
+            throw new ArgumentOutOfRangeException(nameof(initialPosition));
 
         var direction = initialLookDirection is { } initial && initial.LengthSquared() > 0.0001f
             ? Vector3.Normalize(initial)
@@ -46,6 +53,8 @@ internal sealed class PlayerController
     public void Update(float dt, InputState input, Vector2 mouseDelta)
     {
         ArgumentNullException.ThrowIfNull(input);
+        if (dt < 0f || !float.IsFinite(dt))
+            throw new ArgumentOutOfRangeException(nameof(dt));
         UpdateLook(mouseDelta);
         UpdateMovement(dt, input);
         UpdateInteraction(input);
