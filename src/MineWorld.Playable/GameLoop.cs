@@ -53,7 +53,7 @@ internal sealed class GameLoop
             _world.StreamAround(_player.Position.X, _player.Position.Z);
 
             if (_input.SavePressed)
-                WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot(), _player.State);
+                SaveState();
 
             _renderer.BeginFrame(_player.Position, _player.Position + _player.LookDirection);
             _renderer.RenderWorld(_world);
@@ -62,12 +62,12 @@ internal sealed class GameLoop
             frames++;
         }
 
-        WorldPersistence.Save(_world, _savePath, _entityRuntime.Snapshot(), _player.State);
+        SaveState();
     }
 
     internal void StepSimulation(float dt, Vector2 mouseDelta)
     {
-        if (dt < 0f)
+        if (dt < 0f || !float.IsFinite(dt))
             throw new ArgumentOutOfRangeException(nameof(dt));
 
         _fixedAccumulator += MathF.Min(dt, MaxDeltaSeconds);
@@ -82,4 +82,12 @@ internal sealed class GameLoop
             _fixedAccumulator -= FixedStepSeconds;
         }
     }
+
+    private void SaveState()
+        => WorldPersistence.Save(
+            _world,
+            _savePath,
+            _entityRuntime.Snapshot(),
+            _player.State,
+            _player.Position);
 }
