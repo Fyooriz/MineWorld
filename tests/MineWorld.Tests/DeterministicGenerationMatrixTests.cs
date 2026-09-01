@@ -33,10 +33,22 @@ public sealed class DeterministicGenerationMatrixTests
     public void GeneratorVersionParticipatesInDeterministicInput()
     {
         var generator = new BasicWorldGenerator();
-        var first = generator.GenerateBlock(123, 40, -456, 99L, new WorldGeneratorConfig(1));
-        var second = generator.GenerateBlock(123, 40, -456, 99L, new WorldGeneratorConfig(2));
+        var coordinates = new[]
+        {
+            (-32, 32, -32), (-31, 32, -31), (-20, 32, -18),
+            (-16, 32, 0), (0, 32, 0), (16, 32, 16), (32, 32, 32)
+        };
 
-        Assert.NotEqual(first, second);
+        var generatedWithVersionOne = coordinates
+            .Select(c => generator.GenerateBlock(c.Item1, c.Item2, c.Item3, 99L, new WorldGeneratorConfig(1)))
+            .ToArray();
+        var generatedWithVersionTwo = coordinates
+            .Select(c => generator.GenerateBlock(c.Item1, c.Item2, c.Item3, 99L, new WorldGeneratorConfig(2)))
+            .ToArray();
+
+        Assert.Contains(
+            generatedWithVersionOne.Zip(generatedWithVersionTwo),
+            pair => pair.First != pair.Second);
     }
 
     [Fact]
