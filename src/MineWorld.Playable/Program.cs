@@ -32,6 +32,12 @@ internal static class Program
         var input = new InputState();
 
         using IRenderer renderer = new RaylibRenderer(1280, 720, "MineWorld P0");
+        if (runtimeE2E)
+        {
+            Console.WriteLine("REAL_INPUT_READY");
+            Console.Out.Flush();
+        }
+
         var loop = new GameLoop(renderer, input, loaded.World, player, savePath);
         var bootTest = string.Equals(Environment.GetEnvironmentVariable("MINEWORLD_RUNTIME_BOOT"), "1", StringComparison.Ordinal);
         int? maxFrames = null;
