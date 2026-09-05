@@ -57,6 +57,28 @@ jobs:
               exit 4
             fi
 
+            ready_deadline=$((SECONDS + 20))
+            while [ $SECONDS -lt $ready_deadline ]; do
+              if grep -q "REAL_INPUT_READY" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime ready"
+                break
+              fi
+              if ! kill -0 "$app" 2>/dev/null; then
+                echo "REAL_INPUT_E2E: runtime exited before readiness"
+                wait "$app" 2>/dev/null
+                kill "$wm" 2>/dev/null
+                exit 5
+              fi
+              sleep 0.25
+            done
+            if ! grep -q "REAL_INPUT_READY" /tmp/mineworld-runtime-e2e.log 2>/dev/null; then
+              echo "REAL_INPUT_E2E: runtime readiness timeout"
+              tail -n 60 /tmp/mineworld-runtime-e2e.log 2>/dev/null || true
+              kill "$app" 2>/dev/null
+              kill "$wm" 2>/dev/null
+              exit 5
+            fi
+
             echo "REAL_INPUT_E2E: sending craft keydown/keyup"
             xdotool keydown --window "$wid" c
             sleep 0.25
