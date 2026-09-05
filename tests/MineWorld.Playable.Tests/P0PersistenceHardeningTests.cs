@@ -127,6 +127,27 @@ public sealed class P0PersistenceHardeningTests
         }
     }
 
+    [Fact]
+    public void SettingAnOverrideBackToGeneratedStateRemovesTheOverride()
+    {
+        var world = new VoxelWorld(seed: 12345, renderDistance: 1);
+        const int x = 0;
+        const int z = 0;
+        var y = world.GetSurfaceHeight(x, z);
+
+        Assert.Equal(VoxelWorld.Grass, world.GetBlock(x, y, z));
+        Assert.Empty(world.BlockOverrides);
+
+        world.SetBlock(x, y, z, VoxelWorld.Dirt);
+        Assert.Equal(VoxelWorld.Dirt, world.GetBlock(x, y, z));
+        Assert.True(world.BlockOverrides.ContainsKey((x, y, z)));
+
+        world.SetBlock(x, y, z, VoxelWorld.Grass);
+
+        Assert.Equal(VoxelWorld.Grass, world.GetBlock(x, y, z));
+        Assert.False(world.BlockOverrides.ContainsKey((x, y, z)));
+    }
+
     private static string CreateTempPath()
         => Path.Combine(Path.GetTempPath(), $"mineworld-p0-save-{Guid.NewGuid():N}.json");
 
