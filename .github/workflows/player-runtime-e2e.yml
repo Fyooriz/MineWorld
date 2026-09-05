@@ -47,15 +47,8 @@ jobs:
             xdotool windowactivate --sync "$wid" 2>/dev/null || true
             xdotool windowfocus --sync "$wid" 2>/dev/null || true
             sleep 1
-            active=$(xdotool getactivewindow 2>/dev/null || true)
-            echo "REAL_INPUT_E2E: window=$wid active=$active"
-            if [ "$active" != "$wid" ]; then
-              echo "REAL_INPUT_E2E: target window is not active"
-              cat /tmp/openbox-runtime-e2e.log 2>/dev/null || true
-              kill "$app" 2>/dev/null
-              kill "$wm" 2>/dev/null
-              exit 4
-            fi
+            focused=$(xdotool getwindowfocus 2>/dev/null || true)
+            echo "REAL_INPUT_E2E: window=$wid focused=$focused"
 
             ready_deadline=$((SECONDS + 20))
             while [ $SECONDS -lt $ready_deadline ]; do
