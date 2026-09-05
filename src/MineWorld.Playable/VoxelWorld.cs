@@ -52,8 +52,10 @@ internal sealed class VoxelWorld
         if (y < 0 || y >= WorldHeight) return;
         var chunkX = FloorDiv(x, VoxelChunk.Size); var chunkZ = FloorDiv(z, VoxelChunk.Size);
         var chunk = EnsureChunk(chunkX, chunkZ); var localX = FloorMod(x, VoxelChunk.Size); var localZ = FloorMod(z, VoxelChunk.Size);
-        var generated = chunk.GetBlock(localX, y, localZ); chunk.SetBlock(localX, y, localZ, block);
-        if (block == generated) _overrides.Remove((x, y, z)); else _overrides[(x, y, z)] = block;
+        var generated = GetGeneratedBlock(x, y, z);
+        chunk.SetBlock(localX, y, localZ, block);
+        var key = (x, y, z);
+        if (block == generated) _overrides.Remove(key); else _overrides[key] = block;
         InvalidateMesh(chunkX, chunkZ);
         if (localX == 0) InvalidateMesh(chunkX - 1, chunkZ); if (localX == VoxelChunk.Size - 1) InvalidateMesh(chunkX + 1, chunkZ);
         if (localZ == 0) InvalidateMesh(chunkX, chunkZ - 1); if (localZ == VoxelChunk.Size - 1) InvalidateMesh(chunkX, chunkZ + 1);
@@ -124,8 +126,8 @@ internal sealed class VoxelWorld
         var chunk = new VoxelChunk(chunkX, chunkZ);
         for (var localZ = 0; localZ < VoxelChunk.Size; localZ++) for (var localX = 0; localX < VoxelChunk.Size; localX++)
         {
-            var worldX = chunkX * VoxelChunk.Size + localX; var worldZ = chunkZ * VoxelChunk.Size + localZ; var surface = GetSurfaceHeight(worldX, worldZ);
-            for (var y = 0; y <= surface; y++) chunk.SetBlock(localX, y, localZ, y == surface ? Grass : y > surface - 4 ? Dirt : Stone);
+            var worldX = chunkX * VoxelChunk.Size + localX; var worldZ = chunkZ * VoxelChunk.Size + localZ;
+            for (var y = 0; y < WorldHeight; y++) chunk.SetBlock(localX, y, localZ, GetGeneratedBlock(worldX, y, worldZ));
         }
         foreach (var entry in _overrides)
         {
@@ -134,6 +136,15 @@ internal sealed class VoxelWorld
         }
         _chunks[(chunkX, chunkZ)] = chunk; return chunk;
     }
+
+    private byte GetGeneratedBlock(int x, int y, int z)
+    {
+        var surface = GetSurfaceHeight(x, z);
+        if (y > surface) return Air;
+        if (y == surface) return Grass;
+        return y > surface - 4 ? Dirt : Stone;
+    }
+
     private float Noise(int x, int z) { unchecked { var h = Seed * 374761393 + x * 668265263 + z * 2147483647; h = (h ^ (h >> 13)) * 1274126177; h ^= h >> 16; return (h & 0x7fffffff) / 1073741823f - 1f; } }
     private static int FloorDiv(int value, int divisor) { var quotient = value / divisor; var remainder = value % divisor; return remainder >= 0 ? quotient : quotient - 1; }
     private static int FloorMod(int value, int divisor) { var result = value % divisor; return result < 0 ? result + divisor : result; }
