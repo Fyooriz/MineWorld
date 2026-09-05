@@ -137,13 +137,6 @@ internal sealed class VoxelWorld
         _chunks[(chunkX, chunkZ)] = chunk; return chunk;
     }
 
-    private static byte GetGeneratedBlock(int x, int y, int z, Func<int, int, int>? surfaceOverride = null)
-    {
-        var surface = surfaceOverride is null ? 0 : 0;
-        _ = surface;
-        return Air;
-    }
-
     private byte GetGeneratedBlock(int x, int y, int z)
     {
         var surface = GetSurfaceHeight(x, z);
