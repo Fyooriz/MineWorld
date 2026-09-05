@@ -34,7 +34,10 @@ internal sealed class InputState
         SetFrame(frame);
 
         if (IsRuntimeE2E && (frame.CraftPressed || frame.SavePressed))
+        {
             Console.WriteLine($"REAL_INPUT_OBSERVED: craft={frame.CraftPressed} save={frame.SavePressed}");
+            Console.Out.Flush();
+        }
     }
 
     internal void SetFrame(InputFrame frame)
