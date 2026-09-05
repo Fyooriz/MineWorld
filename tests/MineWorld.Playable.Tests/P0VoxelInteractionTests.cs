@@ -30,6 +30,25 @@ public sealed class P0VoxelInteractionTests
     }
 
     [Fact]
+    public void SetBlockBackToGeneratedStateRemovesOverride()
+    {
+        var world = new VoxelWorld(seed: 12345, renderDistance: 1);
+        var y = world.GetSurfaceHeight(0, 0);
+        var key = (X: 0, Y: y, Z: 0);
+
+        Assert.Equal(VoxelWorld.Grass, world.GetBlock(key.X, key.Y, key.Z));
+        Assert.False(world.BlockOverrides.ContainsKey(key));
+
+        world.SetBlock(key.X, key.Y, key.Z, VoxelWorld.Air);
+        Assert.True(world.BlockOverrides.ContainsKey(key));
+        Assert.Equal(VoxelWorld.Air, world.GetBlock(key.X, key.Y, key.Z));
+
+        world.SetBlock(key.X, key.Y, key.Z, VoxelWorld.Grass);
+        Assert.False(world.BlockOverrides.ContainsKey(key));
+        Assert.Equal(VoxelWorld.Grass, world.GetBlock(key.X, key.Y, key.Z));
+    }
+
+    [Fact]
     public void MiningWithFullInventoryLeavesWorldUnchanged()
     {
         var world = new VoxelWorld(seed: 12345, renderDistance: 1);
