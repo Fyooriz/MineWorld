@@ -52,7 +52,8 @@ internal sealed class VoxelWorld
         if (y < 0 || y >= WorldHeight) return;
         var chunkX = FloorDiv(x, VoxelChunk.Size); var chunkZ = FloorDiv(z, VoxelChunk.Size);
         var chunk = EnsureChunk(chunkX, chunkZ); var localX = FloorMod(x, VoxelChunk.Size); var localZ = FloorMod(z, VoxelChunk.Size);
-        var generated = chunk.GetBlock(localX, y, localZ); chunk.SetBlock(localX, y, localZ, block);
+        var generated = GetGeneratedBlock(x, y, z);
+        chunk.SetBlock(localX, y, localZ, block);
         if (block == generated) _overrides.Remove((x, y, z)); else _overrides[(x, y, z)] = block;
         InvalidateMesh(chunkX, chunkZ);
         if (localX == 0) InvalidateMesh(chunkX - 1, chunkZ); if (localX == VoxelChunk.Size - 1) InvalidateMesh(chunkX + 1, chunkZ);
@@ -117,6 +118,14 @@ internal sealed class VoxelWorld
     }
 
     private static string ItemIdForBlock(byte block) => block switch { Grass => "core:grass", Dirt => "core:dirt", Stone => "core:stone", _ => "core:unknown" };
+
+    private byte GetGeneratedBlock(int x, int y, int z)
+    {
+        if (y < 0 || y >= WorldHeight) return Air;
+        var surface = GetSurfaceHeight(x, z);
+        if (y > surface) return Air;
+        return y == surface ? Grass : y > surface - 4 ? Dirt : Stone;
+    }
 
     private VoxelChunk EnsureChunk(int chunkX, int chunkZ)
     {
